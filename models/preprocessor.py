@@ -7,8 +7,8 @@ Assumptions (sensible defaults for hackathon/demo):
 - `product_visit_count`: integer count -> scaled via log1p / log1p(20)
 - `time_on_product_page`: seconds -> capped at 120s (2 minutes)
 - `cart_add_events`: integer count -> capped at 5
-- `search_to_view_ratio`: ratio -> clamped 0..1
-- `price_range_affinity`: already 0..1 or percent -> clamped 0..1
+- `scroll_depth`: ratio -> clamped 0..1
+- `avg_spend_score`: already 0..1 or percent -> clamped 0..1
 - `session_recency`: hours since last session (or 0..1 recentness) -> decays over 7 days
 
 These heuristics are documented and easy to tweak.
@@ -58,7 +58,7 @@ def normalize_cart_add_events(count: Any, cap: int = 5) -> float:
     return _clamp01(c / cap)
 
 
-def normalize_search_to_view_ratio(ratio: Any) -> float:
+def normalize_scroll_depth(ratio: Any) -> float:
     try:
         r = float(ratio)
     except Exception:
@@ -66,7 +66,7 @@ def normalize_search_to_view_ratio(ratio: Any) -> float:
     return _clamp01(r)
 
 
-def normalize_price_range_affinity(val: Any) -> float:
+def normalize_avg_spend_score(val: Any) -> float:
     try:
         v = float(val)
     except Exception:
@@ -105,7 +105,9 @@ def normalize_intent_features(raw: Dict[str, Any]) -> Dict[str, float]:
         "time_on_product_page": normalize_time_on_product_page(raw.get("time_on_product_page", 0)),
         "product_visit_count": normalize_product_visit_count(raw.get("product_visit_count", 0)),
         "cart_add_events": normalize_cart_add_events(raw.get("cart_add_events", 0)),
-        "search_to_view_ratio": normalize_search_to_view_ratio(raw.get("search_to_view_ratio", 0)),
-        "price_range_affinity": normalize_price_range_affinity(raw.get("price_range_affinity", 0)),
+        "scroll_depth": normalize_scroll_depth(raw.get("scroll_depth", 0)),
+        "avg_spend_score": normalize_avg_spend_score(raw.get("avg_spend_score", 0)),
         "session_recency": normalize_session_recency(raw.get("session_recency", 0)),
     }
+
+

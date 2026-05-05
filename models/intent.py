@@ -7,8 +7,8 @@ INTENT_WEIGHTS = {
     "time_on_product_page": 0.20,
     "product_visit_count": 0.15,
     "cart_add_events": 0.25,
-    "search_to_view_ratio": 0.10,
-    "price_range_affinity": 0.15,
+    "scroll_depth": 0.10,
+    "avg_spend_score": 0.15,
     "session_recency": 0.15,
 }
 
@@ -56,3 +56,5 @@ def intent_score(features: dict) -> dict:
         "dominant_signal": dominant,
         "contributions": contributions,
     }
+
+

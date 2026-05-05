@@ -9,8 +9,8 @@ class IntentRequest(BaseModel):
     product_visit_count: float = 0
     time_on_product_page: float = 0
     cart_add_events: float = 0
-    search_to_view_ratio: float = 0
-    price_range_affinity: float = 0
+    scroll_depth: float = 0
+    avg_spend_score: float = 0
     session_recency: float = 0
 
 
@@ -71,3 +71,5 @@ class SearchRerankResult(BaseModel):
 class SearchRerankResponse(BaseModel):
     """Response for search re-ranking endpoint."""
     results: List[SearchRerankResult]
+
+

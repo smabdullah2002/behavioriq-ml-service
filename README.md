@@ -25,8 +25,8 @@ curl -X POST http://localhost:8001/ml/intent-score \
     "product_visit_count": 5,
     "time_on_product_page": 120,
     "cart_add_events": 1,
-    "search_to_view_ratio": 0.2,
-    "price_range_affinity": 0.7,
+    "scroll_depth": 0.2,
+    "avg_spend_score": 0.7,
     "session_recency": 0.6
   }'
 ```
@@ -67,8 +67,8 @@ Compute user intent score (0-100) from session features.
   "product_visit_count": 5,
   "time_on_product_page": 120,
   "cart_add_events": 1,
-  "search_to_view_ratio": 0.25,
-  "price_range_affinity": 0.7,
+  "scroll_depth": 0.25,
+  "avg_spend_score": 0.7,
   "session_recency": 0.8
 }
 ```
@@ -166,3 +166,5 @@ Health check endpoint.
 - Keep LLM calls async and non-blocking in production.
 - Add rate-limiting and API key auth for deployment.
 "# behavioriq-ml-service" 
+
+
