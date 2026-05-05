@@ -35,6 +35,12 @@ class ChurnResponse(BaseModel):
     churn_risk_level: str
     rfm_breakdown: Dict[str, float]
     recommended_action: str
+    model_type: Optional[str] = None  # DEBUG: indicates real_trained or fallback_synthetic
+
+
+class FormulaChurnResponse(BaseModel):
+    """Response for formula-based churn endpoint."""
+    churn_probability: float
 
 
 class UserVectorRequest(BaseModel):

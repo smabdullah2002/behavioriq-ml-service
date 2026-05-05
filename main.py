@@ -5,12 +5,13 @@ import numpy as np
 from pathlib import Path
 
 from models.intent import intent_score
+from models.churn import churn_probability as formula_churn_probability
 from models.churn_model import load_or_train_model, predict_churn
 from models.embedder import ProductEmbedder
 from models.reranker import rerank_candidates, cosine_similarity
 from schemas.requests import (
     IntentRequest, IntentResponse,
-    ChurnRequest, ChurnResponse,
+    ChurnRequest, ChurnResponse, FormulaChurnResponse,
     UserVectorRequest, UserVectorResponse,
     SearchRerankRequest, SearchRerankResponse, SearchRerankResult
 )
@@ -24,14 +25,15 @@ app = FastAPI(title="BehaviorIQ ML Service", version="0.1.0")
 embedder = ProductEmbedder()
 product_vectors = {}
 churn_model = None
+churn_scaler = None
 
 
 @app.on_event("startup")
 def startup_event():
     """Initialize seed data and load embedder at startup."""
-    global embedder, product_vectors, churn_model
+    global embedder, product_vectors, churn_model, churn_scaler
     product_vectors = initialize_seed_data(embedder)
-    churn_model = load_or_train_model()
+    churn_model, churn_scaler = load_or_train_model()
 
 
 @app.post("/ml/intent-score", response_model=IntentResponse)
@@ -55,13 +57,37 @@ def ml_intent(req: IntentRequest):
 @app.post("/ml/churn-predict", response_model=ChurnResponse)
 def ml_churn(req: ChurnRequest):
     """Predict churn probability."""
-    result = predict_churn(
-        churn_model,
+    try:
+        result = predict_churn(
+            churn_model,
+            req.days_since_last_purchase,
+            req.total_order_count,
+            req.avg_order_value,
+            scaler=churn_scaler
+        )
+        return ChurnResponse(**result)
+    except Exception as e:
+        import traceback, logging
+        logging.getLogger(__name__).exception("Churn prediction failed")
+        # Return a safe error response for debugging
+        return ChurnResponse(
+            churn_probability=0.0,
+            churn_risk_level="error",
+            rfm_breakdown={"recency_score": 0.0, "frequency_score": 0.0, "monetary_score": 0.0},
+            recommended_action="none",
+            model_type=None
+        )
+
+
+@app.post("/ml/churn-predict-formula", response_model=FormulaChurnResponse)
+def ml_churn_formula(req: ChurnRequest):
+    """Predict churn probability using the formula-based RFM helper."""
+    probability = formula_churn_probability(
         req.days_since_last_purchase,
         req.total_order_count,
-        req.avg_order_value
+        req.avg_order_value,
     )
-    return ChurnResponse(**result)
+    return FormulaChurnResponse(churn_probability=probability)
 
 
 @app.post("/ml/user-vector", response_model=UserVectorResponse)

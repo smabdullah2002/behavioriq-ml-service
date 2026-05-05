@@ -1,14 +1,20 @@
 """Model-based churn prediction helper."""
 
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
+import logging
 
 import joblib
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+
+logger = logging.getLogger(__name__)
 
 
-MODEL_PATH = Path("saved_models/churn_model.pkl")
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_PATH = BASE_DIR / "saved_models" / "churn_model.pkl"
+SCALER_PATH = BASE_DIR / "saved_models" / "churn_scaler.pkl"
 MAX_DAYS = 365.0
 MAX_ORDERS = 50.0
 MAX_VALUE = 500.0
@@ -63,29 +69,73 @@ def _build_synthetic_training_data(seed: int = 42, size: int = 500) -> Tuple[np.
     return X, y
 
 
-def load_or_train_model() -> LogisticRegression:
-    """Load the churn model if it exists, otherwise train a small fallback model."""
+def load_or_train_model() -> Tuple[LogisticRegression, Optional[StandardScaler]]:
+    """Load the churn model if it exists, otherwise train a small fallback model.
+    Returns (model, scaler) where scaler is None for fallback models."""
     if MODEL_PATH.exists():
-        return joblib.load(MODEL_PATH)
-
+        model = joblib.load(MODEL_PATH)
+        scaler = None
+        if SCALER_PATH.exists():
+            scaler = joblib.load(SCALER_PATH)
+        logger.info(f"✅ Loaded REAL churn model from {MODEL_PATH}")
+        logger.info(f"✅ Loaded scaler from {SCALER_PATH}" if scaler else "⚠️  No scaler found (using raw 0-1 normalization)")
+        return model, scaler
+    # Fallback: train on synthetic data
+    logger.warning("⚠️  No saved model found. Training FALLBACK model on synthetic data...")
     X, y = _build_synthetic_training_data()
     model = LogisticRegression(max_iter=300)
     model.fit(X, y)
     MODEL_PATH.parent.mkdir(exist_ok=True)
     joblib.dump(model, MODEL_PATH)
-    return model
+    logger.warning("⚠️  FALLBACK model saved. Run 'python -m data.train' to train on real Kaggle data.")
+    return model, None
 
 
-def predict_churn(model: LogisticRegression, days_since_last_purchase: Any, total_order_count: Any, avg_order_value: Any) -> Dict[str, Any]:
-    """Return churn score, risk level, breakdown, and action."""
+def predict_churn(model: LogisticRegression, days_since_last_purchase: Any, total_order_count: Any, avg_order_value: Any, scaler: Optional[StandardScaler] = None) -> Dict[str, Any]:
+    """Return churn score, risk level, breakdown, and action.
+    If scaler is provided, uses raw values scaled (real trained model).
+    Otherwise uses manual 0-1 normalization (fallback model)."""
+    
+    # If scaler exists (real model), use raw values directly
+    if scaler is not None:
+        try:
+            days = float(days_since_last_purchase)
+        except Exception:
+            days = 0.0
+        # Match training transform: use log1p(days) so model is sensitive in mid-range
+        days_log = float(np.log1p(days))
+        try:
+            orders = float(total_order_count)
+        except Exception:
+            orders = 0.0
+        try:
+            value = float(avg_order_value)
+        except Exception:
+            value = 0.0
+
+        # Build features to match training pipeline: [recency_log, frequency, monetary, interaction]
+        interaction = days_log * orders
+        features = np.array([[days_log, orders, value, interaction]])
+        features = scaler.transform(features)
+        probability = float(model.predict_proba(features)[0][1])
+        model_type = "real_trained"
+    else:
+        # Fallback: use manual 0-1 normalization
+        recency_score, frequency_score, monetary_score = normalize_rfm(
+            days_since_last_purchase,
+            total_order_count,
+            avg_order_value,
+        )
+        features = np.array([[recency_score, frequency_score, monetary_score]])
+        probability = float(model.predict_proba(features)[0][1])
+        model_type = "fallback_synthetic"
+    
+    # Calculate 0-1 breakdown for response (always use normalize_rfm for consistency)
     recency_score, frequency_score, monetary_score = normalize_rfm(
         days_since_last_purchase,
         total_order_count,
         avg_order_value,
     )
-
-    features = np.array([[recency_score, frequency_score, monetary_score]])
-    probability = float(model.predict_proba(features)[0][1])
 
     risk_level = "low"
     recommended_action = "none"
@@ -104,4 +154,5 @@ def predict_churn(model: LogisticRegression, days_since_last_purchase: Any, tota
             "monetary_score": round(monetary_score, 4),
         },
         "recommended_action": recommended_action,
+        "model_type": model_type,  # DEBUG: shows which model is being used
     }
