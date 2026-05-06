@@ -1,702 +1,702 @@
 [
   {
     "id": "p1",
-    "name": "Product 1",
-    "desc": "Shoes item 1",
+    "name": "Nike Air Max 90",
+    "desc": "Iconic Nike running shoe with visible Air cushioning unit, mesh and leather upper, classic retro silhouette",
     "category": "shoes",
-    "price": 356.38
+    "price": 130.00
   },
   {
     "id": "p2",
-    "name": "Product 2",
-    "desc": "Sports item 2",
+    "name": "Wilson Pro Staff 97 Tennis Racket",
+    "desc": "Professional-grade Wilson tennis racket with braided graphite frame, 97 sq in head, used by Roger Federer",
     "category": "sports",
-    "price": 386.52
+    "price": 229.00
   },
   {
     "id": "p3",
-    "name": "Product 3",
-    "desc": "Outdoor item 3",
+    "name": "MSR Hubba Hubba NX 2-Person Tent",
+    "desc": "Lightweight MSR backpacking tent, two doors and vestibules, DAC Featherlite NSL poles, 3-season",
     "category": "outdoor",
-    "price": 334.21
+    "price": 549.95
   },
   {
     "id": "p4",
-    "name": "Product 4",
-    "desc": "Apparel item 4",
+    "name": "Levi's 501 Original Jeans",
+    "desc": "Classic straight-leg Levi's denim jeans, button fly, 100% cotton, original shrink-to-fit fit",
     "category": "apparel",
-    "price": 101.01
+    "price": 89.50
   },
   {
     "id": "p5",
-    "name": "Product 5",
-    "desc": "Sports item 5",
+    "name": "Spalding NBA Official Game Basketball",
+    "desc": "Official NBA game ball by Spalding, full-grain leather, size 7, used in professional NBA games",
     "category": "sports",
-    "price": 113.04
+    "price": 149.99
   },
   {
     "id": "p6",
-    "name": "Product 6",
-    "desc": "Apparel item 6",
+    "name": "The North Face 100 Glacier Fleece Pullover",
+    "desc": "Classic The North Face fleece pullover, 100% polyester fleece, kangaroo pocket, midlayer warmth",
     "category": "apparel",
-    "price": 258.03
+    "price": 79.00
   },
   {
     "id": "p7",
-    "name": "Product 7",
-    "desc": "Accessories item 7",
+    "name": "Ray-Ban Aviator Classic Sunglasses",
+    "desc": "Iconic Ray-Ban aviator with gold metal frame, crystal green G-15 lenses, UV400 protection",
     "category": "accessories",
-    "price": 331.98
+    "price": 193.00
   },
   {
     "id": "p8",
-    "name": "Product 8",
-    "desc": "Outdoor item 8",
+    "name": "Black Diamond Spot 400 Headlamp",
+    "desc": "Powerful Black Diamond headlamp, 400 lumens, waterproof IPX8, red night vision mode, 3 AAA batteries",
     "category": "outdoor",
-    "price": 64.13
+    "price": 44.95
   },
   {
     "id": "p9",
-    "name": "Product 9",
-    "desc": "Outdoor item 9",
+    "name": "Big Agnes Copper Spur HV UL2 Tent",
+    "desc": "Ultralight Big Agnes 2-person tent, 1 lb 14 oz, double-wall, freestanding, color-coded clips",
     "category": "outdoor",
-    "price": 464.74
+    "price": 549.95
   },
   {
     "id": "p10",
-    "name": "Product 10",
-    "desc": "Outdoor item 10",
+    "name": "Therm-a-Rest NeoAir XLite Sleeping Pad",
+    "desc": "Ultralight inflatable Therm-a-Rest sleeping pad, R-value 4.5, triangular core matrix, stuff sack included",
     "category": "outdoor",
-    "price": 386.58
+    "price": 199.95
   },
   {
     "id": "p11",
-    "name": "Product 11",
-    "desc": "Outdoor item 11",
+    "name": "Western Mountaineering UltraLite Sleeping Bag",
+    "desc": "Premium 850-fill goose down sleeping bag by Western Mountaineering, 20°F rating, 2 lbs 2 oz, mummy style",
     "category": "outdoor",
-    "price": 309.43
+    "price": 475.00
   },
   {
     "id": "p12",
-    "name": "Product 12",
-    "desc": "Outdoor item 12",
+    "name": "Jetboil Flash Cooking System",
+    "desc": "All-in-one Jetboil backpacking stove, boils 500ml in 100 seconds, push-button igniter, FluxRing technology",
     "category": "outdoor",
-    "price": 197.84
+    "price": 109.95
   },
   {
     "id": "p13",
-    "name": "Product 13",
-    "desc": "Sports item 13",
+    "name": "Babolat Pure Drive Tennis Racket",
+    "desc": "Powerful Babolat racket with FSI Power technology, 100 sq in head, 10.6 oz, used by Carlos Alcaraz",
     "category": "sports",
-    "price": 82.85
+    "price": 249.00
   },
   {
     "id": "p14",
-    "name": "Product 14",
-    "desc": "Shoes item 14",
+    "name": "Adidas Ultraboost 23",
+    "desc": "Premium Adidas running shoe with Boost midsole foam, Primeknit upper, Continental rubber outsole",
     "category": "shoes",
-    "price": 399.23
+    "price": 190.00
   },
   {
     "id": "p15",
-    "name": "Product 15",
-    "desc": "Outdoor item 15",
+    "name": "Columbia Newton Ridge Plus Hiking Boot",
+    "desc": "Waterproof Columbia hiking boot, Omni-Grip traction outsole, leather and mesh upper, low-profile",
     "category": "outdoor",
-    "price": 235.24
+    "price": 109.99
   },
   {
     "id": "p16",
-    "name": "Product 16",
-    "desc": "Shoes item 16",
+    "name": "New Balance 990v6",
+    "desc": "Heritage New Balance running sneaker, ENCAP midsole technology, pigskin and mesh upper, made in USA",
     "category": "shoes",
-    "price": 164.67
+    "price": 184.99
   },
   {
     "id": "p17",
-    "name": "Product 17",
-    "desc": "Accessories item 17",
+    "name": "Apple Watch SE 2nd Gen",
+    "desc": "Apple Watch SE with S8 chip, crash detection, fall detection, heart rate monitor, water resistant 50m",
     "category": "accessories",
-    "price": 366.31
+    "price": 249.00
   },
   {
     "id": "p18",
-    "name": "Product 18",
-    "desc": "Accessories item 18",
+    "name": "Garmin Forerunner 265 GPS Running Watch",
+    "desc": "Advanced Garmin running smartwatch, AMOLED display, HRV status, training readiness, 13-day battery",
     "category": "accessories",
-    "price": 441.4
+    "price": 449.99
   },
   {
     "id": "p19",
-    "name": "Product 19",
-    "desc": "Apparel item 19",
+    "name": "Ralph Lauren Classic Polo Shirt",
+    "desc": "Iconic Ralph Lauren polo in 100% cotton piqué, embroidered pony logo, ribbed collar and cuffs",
     "category": "apparel",
-    "price": 256.58
+    "price": 98.50
   },
   {
     "id": "p20",
-    "name": "Product 20",
-    "desc": "Sports item 20",
+    "name": "Titleist Pro V1 Golf Balls (12-pack)",
+    "desc": "Premium Titleist Pro V1 golf balls, 3-piece urethane elastomer cover, Tour-proven distance and feel",
     "category": "sports",
-    "price": 105.03
+    "price": 54.99
   },
   {
     "id": "p21",
-    "name": "Product 21",
-    "desc": "Accessories item 21",
+    "name": "Samsung Galaxy Watch 6 Classic",
+    "desc": "Samsung smartwatch with rotating bezel, sapphire crystal display, sleep coaching, body composition analysis",
     "category": "accessories",
-    "price": 334.55
+    "price": 399.99
   },
   {
     "id": "p22",
-    "name": "Product 22",
-    "desc": "Apparel item 22",
+    "name": "Uniqlo Ultra Light Down Jacket",
+    "desc": "Packable Uniqlo down jacket, 90% down fill, water-repellent finish, packs into its own pocket",
     "category": "apparel",
-    "price": 98.29
+    "price": 99.90
   },
   {
     "id": "p23",
-    "name": "Product 23",
-    "desc": "Outdoor item 23",
+    "name": "Merrell Moab 3 Mid Hiking Boot",
+    "desc": "Durable Merrell waterproof hiking boot, Vibram outsole, bellows tongue keeps debris out, vegan options",
     "category": "outdoor",
-    "price": 454.07
+    "price": 139.95
   },
   {
     "id": "p24",
-    "name": "Product 24",
-    "desc": "Outdoor item 24",
+    "name": "Osprey Atmos AG 65 Backpack",
+    "desc": "Top-rated Osprey backpacking pack, Anti-Gravity suspension, removable top lid, 65L capacity, hip belt pockets",
     "category": "outdoor",
-    "price": 220.58
+    "price": 340.00
   },
   {
     "id": "p25",
-    "name": "Product 25",
-    "desc": "Outdoor item 25",
+    "name": "Gregory Baltoro 75 Backpack",
+    "desc": "Expedition-ready Gregory pack with Response A3 suspension, 75L capacity, sleeping bag compartment, rain cover included",
     "category": "outdoor",
-    "price": 288.58
+    "price": 369.95
   },
   {
     "id": "p26",
-    "name": "Product 26",
-    "desc": "Outdoor item 26",
+    "name": "Black Diamond Momentum Climbing Harness",
+    "desc": "Beginner-friendly Black Diamond harness, 4 gear loops, Dual Core Construction, buckle-free waist",
     "category": "outdoor",
-    "price": 106.21
+    "price": 64.95
   },
   {
     "id": "p27",
-    "name": "Product 27",
-    "desc": "Outdoor item 27",
+    "name": "Petzl Actik Core Headlamp",
+    "desc": "Versatile Petzl headlamp, 600 lumens, rechargeable CORE battery or AAA, red lighting, wide and spot beams",
     "category": "outdoor",
-    "price": 72.9
+    "price": 69.95
   },
   {
     "id": "p28",
-    "name": "Product 28",
-    "desc": "Outdoor item 28",
+    "name": "GoPro HERO12 Black Camera",
+    "desc": "Latest GoPro action camera, 5.3K video, HyperSmooth 6.0 stabilization, waterproof to 33ft, HDR video",
     "category": "outdoor",
-    "price": 404.29
+    "price": 399.99
   },
   {
     "id": "p29",
-    "name": "Product 29",
-    "desc": "Outdoor item 29",
+    "name": "Garmin inReach Mini 2 GPS Communicator",
+    "desc": "Compact Garmin satellite communicator, two-way messaging, SOS, live tracking, weather forecasts, 14-day battery",
     "category": "outdoor",
-    "price": 276.97
+    "price": 349.99
   },
   {
     "id": "p30",
-    "name": "Product 30",
-    "desc": "Sports item 30",
+    "name": "Callaway Strata 16-Piece Golf Club Set",
+    "desc": "Complete Callaway beginner golf set, driver, fairway wood, hybrids, irons, putter, stand bag included",
     "category": "sports",
-    "price": 447.88
+    "price": 299.99
   },
   {
     "id": "p31",
-    "name": "Product 31",
-    "desc": "Outdoor item 31",
+    "name": "Suunto Core All Black Outdoor Watch",
+    "desc": "Rugged Suunto outdoor watch, altimeter, barometer, compass, weather alarm, depth meter, DLC coated case",
     "category": "outdoor",
-    "price": 313.42
+    "price": 238.98
   },
   {
     "id": "p32",
-    "name": "Product 32",
-    "desc": "Sports item 32",
+    "name": "Rawlings Heart of the Hide Baseball Glove",
+    "desc": "Professional Rawlings baseball glove, 11.5 inch, Heart of Hide leather, I-web pattern, break-in oil included",
     "category": "sports",
-    "price": 311.21
+    "price": 359.99
   },
   {
     "id": "p33",
-    "name": "Product 33",
-    "desc": "Accessories item 33",
+    "name": "Fossil Gen 6 Smartwatch",
+    "desc": "Stylish Fossil smartwatch with Snapdragon 4100+, Wear OS, heart rate tracking, stainless steel case, 1.28 AMOLED",
     "category": "accessories",
-    "price": 282.18
+    "price": 249.00
   },
   {
     "id": "p34",
-    "name": "Product 34",
-    "desc": "Apparel item 34",
+    "name": "H&M Slim Fit Chinos",
+    "desc": "Stretch cotton H&M chino trousers, slim fit through hips and thighs, flat front, available in multiple colors",
     "category": "apparel",
-    "price": 20.03
+    "price": 34.99
   },
   {
     "id": "p35",
-    "name": "Product 35",
-    "desc": "Shoes item 35",
+    "name": "Converse Chuck Taylor All Star Hi",
+    "desc": "Classic Converse high-top canvas sneaker, rubber sole, ankle patch, available in 50+ colorways",
     "category": "shoes",
-    "price": 247.39
+    "price": 65.00
   },
   {
     "id": "p36",
-    "name": "Product 36",
-    "desc": "Outdoor item 36",
+    "name": "REI Co-op Trailbreak 60 Backpack",
+    "desc": "Versatile REI backpacking pack, 60L, adjustable torso and hipbelt, side and front pockets, hydration compatible",
     "category": "outdoor",
-    "price": 412.29
+    "price": 199.00
   },
   {
     "id": "p37",
-    "name": "Product 37",
-    "desc": "Sports item 37",
+    "name": "Yonex Astrox 100ZZ Badminton Racket",
+    "desc": "Top-end Yonex badminton racket, Rotational Generator System, M40X graphite shaft, pro-level control",
     "category": "sports",
-    "price": 200.3
+    "price": 199.99
   },
   {
     "id": "p38",
-    "name": "Product 38",
-    "desc": "Accessories item 38",
+    "name": "Casio G-Shock GA-2100 Watch",
+    "desc": "Iconic Casio G-Shock, carbon core guard structure, analog-digital display, 200m water resistance, shock-proof",
     "category": "accessories",
-    "price": 91.27
+    "price": 99.00
   },
   {
     "id": "p39",
-    "name": "Product 39",
-    "desc": "Outdoor item 39",
+    "name": "Sawyer Products Squeeze Water Filter",
+    "desc": "Lightweight Sawyer hollow fiber filter, removes 99.99999% of bacteria, 100,000 gallon capacity, weighs 3 oz",
     "category": "outdoor",
-    "price": 33.5
+    "price": 34.99
   },
   {
     "id": "p40",
-    "name": "Product 40",
-    "desc": "Shoes item 40",
+    "name": "Vans Old Skool Sneaker",
+    "desc": "Iconic Vans low-top skate shoe, side stripe, suede and canvas upper, waffle outsole, padded collar",
     "category": "shoes",
-    "price": 46.12
+    "price": 70.00
   },
   {
     "id": "p41",
-    "name": "Product 41",
-    "desc": "Shoes item 41",
+    "name": "Puma RS-X Sneaker",
+    "desc": "Chunky Puma RS-X lifestyle shoe, Running System technology, mesh and leather upper, thick EVA midsole",
     "category": "shoes",
-    "price": 154.08
+    "price": 110.00
   },
   {
     "id": "p42",
-    "name": "Product 42",
-    "desc": "Accessories item 42",
+    "name": "Oakley Holbrook Sunglasses",
+    "desc": "Classic Oakley Holbrook with O-Matter frame, Unobtainium nose pads, Prizm lens options, Three-Point Fit",
     "category": "accessories",
-    "price": 245.16
+    "price": 196.00
   },
   {
     "id": "p43",
-    "name": "Product 43",
-    "desc": "Outdoor item 43",
+    "name": "LifeStraw Personal Water Filter",
+    "desc": "Essential LifeStraw filter straw, removes 99.9999% of bacteria and parasites, no batteries, 1000 gallons",
     "category": "outdoor",
-    "price": 44.71
+    "price": 19.95
   },
   {
     "id": "p44",
-    "name": "Product 44",
-    "desc": "Apparel item 44",
+    "name": "Patagonia Better Sweater Fleece Jacket",
+    "desc": "Classic Patagonia fleece jacket, 100% recycled polyester, full-zip, stand-up collar, hand pockets",
     "category": "apparel",
-    "price": 183.31
+    "price": 179.00
   },
   {
     "id": "p45",
-    "name": "Product 45",
-    "desc": "Apparel item 45",
+    "name": "Arc'teryx Gamma MX Softshell Hoody",
+    "desc": "Premium Arc'teryx softshell hoody, Fortius Air 2.0 fabric, articulated patterning, wind and water resistant",
     "category": "apparel",
-    "price": 292.86
+    "price": 325.00
   },
   {
     "id": "p46",
-    "name": "Product 46",
-    "desc": "Apparel item 46",
+    "name": "Calvin Klein Slim Fit Suit",
+    "desc": "Modern Calvin Klein two-piece suit, stretch wool blend, slim cut jacket and trousers, notch lapel",
     "category": "apparel",
-    "price": 306.41
+    "price": 299.99
   },
   {
     "id": "p47",
-    "name": "Product 47",
-    "desc": "Shoes item 47",
+    "name": "Asics Gel-Nimbus 25",
+    "desc": "Premium Asics neutral running shoe, FF Blast Plus Eco midsole, engineered mesh upper, extra cushioning",
     "category": "shoes",
-    "price": 234.41
+    "price": 159.95
   },
   {
     "id": "p48",
-    "name": "Product 48",
-    "desc": "Shoes item 48",
+    "name": "Hoka Clifton 9",
+    "desc": "Hoka's most popular road running shoe, lightweight 8.9 oz, meta-rocker geometry, extended heel crash pad",
     "category": "shoes",
-    "price": 211.99
+    "price": 144.95
   },
   {
     "id": "p49",
-    "name": "Product 49",
-    "desc": "Apparel item 49",
+    "name": "Gap Logo Fleece Hoodie",
+    "desc": "Classic Gap pullover hoodie, brushed fleece interior, front pouch pocket, ribbed cuffs and hem, unisex fit",
     "category": "apparel",
-    "price": 87.07
+    "price": 59.95
   },
   {
     "id": "p50",
-    "name": "Product 50",
-    "desc": "Shoes item 50",
+    "name": "Nike ZoomX Vaporfly Next% 3",
+    "desc": "Elite Nike racing shoe, ZoomX foam and carbon fiber plate, 4% energy return improvement, Flyknit upper",
     "category": "shoes",
-    "price": 370.06
-  },
-  {
-    "id": "p51",
-    "name": "Product 51",
-    "desc": "Sports item 51",
-    "category": "sports",
-    "price": 68.19
-  },
-  {
-    "id": "p52",
-    "name": "Product 52",
-    "desc": "Sports item 52",
-    "category": "sports",
-    "price": 301.31
-  },
-  {
-    "id": "p53",
-    "name": "Product 53",
-    "desc": "Sports item 53",
-    "category": "sports",
-    "price": 485.34
-  },
-  {
-    "id": "p54",
-    "name": "Product 54",
-    "desc": "Accessories item 54",
-    "category": "accessories",
-    "price": 230.51
-  },
-  {
-    "id": "p55",
-    "name": "Product 55",
-    "desc": "Outdoor item 55",
-    "category": "outdoor",
-    "price": 192.07
-  },
-  {
-    "id": "p56",
-    "name": "Product 56",
-    "desc": "Shoes item 56",
-    "category": "shoes",
-    "price": 125.25
-  },
-  {
-    "id": "p57",
-    "name": "Product 57",
-    "desc": "Sports item 57",
-    "category": "sports",
-    "price": 191.42
-  },
-  {
-    "id": "p58",
-    "name": "Product 58",
-    "desc": "Sports item 58",
-    "category": "sports",
-    "price": 113.46
-  },
-  {
-    "id": "p59",
-    "name": "Product 59",
-    "desc": "Shoes item 59",
-    "category": "shoes",
-    "price": 92.04
-  },
-  {
-    "id": "p60",
-    "name": "Product 60",
-    "desc": "Accessories item 60",
-    "category": "accessories",
     "price": 249.99
   },
   {
-    "id": "p61",
-    "name": "Product 61",
-    "desc": "Sports item 61",
+    "id": "p51",
+    "name": "Head Gravity Tour Tennis Racket",
+    "desc": "Head racket with Graphene 360+ technology, 16x19 string pattern, 100 sq in, 10.9 oz, spin-friendly",
     "category": "sports",
-    "price": 179.54
+    "price": 229.95
+  },
+  {
+    "id": "p52",
+    "name": "TaylorMade Stealth 2 Driver",
+    "desc": "Premium TaylorMade driver, 60-layer carbon fiber face, Inertia Generator, 460cc head, adjustable loft",
+    "category": "sports",
+    "price": 599.99
+  },
+  {
+    "id": "p53",
+    "name": "Ping G430 Max Driver",
+    "desc": "Forgiving Ping driver, carbonfly wrap face, Spinsistency technology, 460cc head, LST and SFT models",
+    "category": "sports",
+    "price": 549.99
+  },
+  {
+    "id": "p54",
+    "name": "Hydro Flask 32 oz Wide Mouth Water Bottle",
+    "desc": "Insulated Hydro Flask stainless steel bottle, TempShield keeps drinks cold 24h or hot 12h, leakproof lid",
+    "category": "accessories",
+    "price": 54.95
+  },
+  {
+    "id": "p55",
+    "name": "Sea to Summit Reactor Extreme Sleeping Bag Liner",
+    "desc": "Thermolite sleeping bag liner by Sea to Summit, adds 25°F warmth, mummy shape, travel friendly",
+    "category": "outdoor",
+    "price": 89.95
+  },
+  {
+    "id": "p56",
+    "name": "Skechers Go Walk 6 Slip-On",
+    "desc": "Lightweight Skechers walking shoe, Air-Cooled Goga Mat insole, machine washable, hands-free slip-on design",
+    "category": "shoes",
+    "price": 69.99
+  },
+  {
+    "id": "p57",
+    "name": "Wilson NFL Duke Official Football",
+    "desc": "Official NFL game ball by Wilson, hand-selected leather, pebbled texture, used in every Super Bowl since 1941",
+    "category": "sports",
+    "price": 109.99
+  },
+  {
+    "id": "p58",
+    "name": "Speedo LZR Racer Elite 2 Swimsuit",
+    "desc": "World Record-breaking Speedo tech suit, LZR Pulse fabric, water-repellent, compression panels, FINA approved",
+    "category": "sports",
+    "price": 399.00
+  },
+  {
+    "id": "p59",
+    "name": "Reebok Classic Leather Sneaker",
+    "desc": "Heritage Reebok sneaker, soft garment leather upper, die-cut EVA midsole, iconic 80s silhouette",
+    "category": "shoes",
+    "price": 84.99
+  },
+  {
+    "id": "p60",
+    "name": "Yeti Rambler 30 oz Tumbler",
+    "desc": "Yeti double-wall vacuum insulated tumbler, 18/8 stainless steel, MagSlider lid, dishwasher safe",
+    "category": "accessories",
+    "price": 44.99
+  },
+  {
+    "id": "p61",
+    "name": "NordicTrack T 6.5 Si Treadmill",
+    "desc": "Home treadmill by NordicTrack, 10% incline, 10 MPH max speed, iFIT compatible, FlexSelect cushioning",
+    "category": "sports",
+    "price": 699.00
   },
   {
     "id": "p62",
-    "name": "Product 62",
-    "desc": "Accessories item 62",
+    "name": "Samsonite Omni PC Hardside Luggage 28\"",
+    "desc": "Samsonite spinner suitcase, polycarbonate shell, TSA-approved lock, multi-directional spinner wheels, expandable",
     "category": "accessories",
-    "price": 436.76
+    "price": 229.99
   },
   {
     "id": "p63",
-    "name": "Product 63",
-    "desc": "Accessories item 63",
+    "name": "Osprey Daylite 13L Daypack",
+    "desc": "Versatile Osprey daypack, 13L capacity, top zip organization pocket, mesh back panel, water bottle pockets",
     "category": "accessories",
-    "price": 182.43
+    "price": 75.00
   },
   {
     "id": "p64",
-    "name": "Product 64",
-    "desc": "Accessories item 64",
+    "name": "Herschel Supply Nova Backpack",
+    "desc": "Classic Herschel Nova 18L backpack, signature stripe lining, 15-inch laptop sleeve, magnetic closure pockets",
     "category": "accessories",
-    "price": 216.48
+    "price": 69.99
   },
   {
     "id": "p65",
-    "name": "Product 65",
-    "desc": "Sports item 65",
+    "name": "Bowflex SelectTech 552 Adjustable Dumbbells",
+    "desc": "Space-saving Bowflex adjustable dumbbell set, 5 to 52.5 lbs each, dial system, replaces 15 sets of weights",
     "category": "sports",
-    "price": 110.17
+    "price": 429.00
   },
   {
     "id": "p66",
-    "name": "Product 66",
-    "desc": "Accessories item 66",
+    "name": "Bellroy Note Sleeve Wallet",
+    "desc": "Slim Bellroy leather wallet, RFID protection, quick-access card slot, bill compartment, 4-8 cards",
     "category": "accessories",
-    "price": 241.6
+    "price": 79.00
   },
   {
     "id": "p67",
-    "name": "Product 67",
-    "desc": "Apparel item 67",
+    "name": "Zara Tailored Wool Blazer",
+    "desc": "Slim-cut Zara single-breasted blazer, wool blend fabric, notch lapel, double back vent, welt pockets",
     "category": "apparel",
-    "price": 493.85
+    "price": 149.00
   },
   {
     "id": "p68",
-    "name": "Product 68",
-    "desc": "Apparel item 68",
+    "name": "Tommy Hilfiger Slim Oxford Shirt",
+    "desc": "Classic Tommy Hilfiger button-down, 100% cotton Oxford cloth, embroidered flag logo, slim fit",
     "category": "apparel",
-    "price": 277.41
+    "price": 89.50
   },
   {
     "id": "p69",
-    "name": "Product 69",
-    "desc": "Shoes item 69",
+    "name": "Brooks Ghost 15 Running Shoe",
+    "desc": "Versatile Brooks neutral running shoe, DNA LOFT v2 cushioning, engineered mesh upper, 3D Fit Print overlays",
     "category": "shoes",
-    "price": 108.97
+    "price": 139.95
   },
   {
     "id": "p70",
-    "name": "Product 70",
-    "desc": "Outdoor item 70",
+    "name": "Marmot PreCip Eco Rain Jacket",
+    "desc": "Lightweight Marmot waterproof jacket, NanoPro eco-friendly DWR coating, packable, pit zips for ventilation",
     "category": "outdoor",
-    "price": 129.69
+    "price": 109.00
   },
   {
     "id": "p71",
-    "name": "Product 71",
-    "desc": "Accessories item 71",
+    "name": "Anker PowerCore 20000 mAh Power Bank",
+    "desc": "High-capacity Anker portable charger, dual USB-A ports, PowerIQ technology, charges smartphones 4-5 times",
     "category": "accessories",
-    "price": 233.86
+    "price": 45.99
   },
   {
     "id": "p72",
-    "name": "Product 72",
-    "desc": "Outdoor item 72",
+    "name": "Patagonia Houdini Wind Jacket",
+    "desc": "Ultralight Patagonia wind jacket, 100% recycled nylon ripstop, stuffs into chest pocket, 3.4 oz",
     "category": "outdoor",
-    "price": 457.49
+    "price": 149.00
   },
   {
     "id": "p73",
-    "name": "Product 73",
-    "desc": "Sports item 73",
+    "name": "Schwinn IC4 Indoor Cycling Bike",
+    "desc": "Connected Schwinn spin bike, magnetic resistance, Bluetooth to fitness apps, 100 resistance levels, LCD console",
     "category": "sports",
-    "price": 98.93
+    "price": 799.00
   },
   {
     "id": "p74",
-    "name": "Product 74",
-    "desc": "Outdoor item 74",
+    "name": "Columbia Silver Ridge Convertible Pants",
+    "desc": "Columbia zip-off hiking pants, Omni-Wick moisture management, UPF 50 sun protection, multiple pockets",
     "category": "outdoor",
-    "price": 145.72
+    "price": 64.99
   },
   {
     "id": "p75",
-    "name": "Product 75",
-    "desc": "Apparel item 75",
+    "name": "Nike Dri-FIT Training T-Shirt",
+    "desc": "Performance Nike workout tee, Dri-FIT technology wicks sweat, 100% polyester, slim fit, graphic options",
     "category": "apparel",
-    "price": 269.01
+    "price": 35.00
   },
   {
     "id": "p76",
-    "name": "Product 76",
-    "desc": "Sports item 76",
+    "name": "Nike Mercurial Vapor 15 Elite FG Cleats",
+    "desc": "Elite Nike soccer cleats, Flyknit upper, carbon fiber soleplate, designed for speed on firm ground",
     "category": "sports",
-    "price": 397.36
+    "price": 275.00
   },
   {
     "id": "p77",
-    "name": "Product 77",
-    "desc": "Apparel item 77",
+    "name": "Adidas Tiro 23 Competition Track Jacket",
+    "desc": "Adidas football training jacket, AEROREADY moisture management, full zip, ribbed cuffs, slim fit",
     "category": "apparel",
-    "price": 403.75
+    "price": 75.00
   },
   {
     "id": "p78",
-    "name": "Product 78",
-    "desc": "Outdoor item 78",
+    "name": "Darn Tough Hiker Micro Crew Socks",
+    "desc": "Premium Darn Tough merino wool hiking socks, cushion foot, lifetime guarantee, odor-resistant, USA made",
     "category": "outdoor",
-    "price": 181.23
+    "price": 27.00
   },
   {
     "id": "p79",
-    "name": "Product 79",
-    "desc": "Accessories item 79",
+    "name": "Tumi Alpha 3 Expandable Laptop Backpack",
+    "desc": "Premium Tumi business backpack, ballistic nylon, 15-inch laptop compartment, TSA-friendly, expandable, USB passthrough",
     "category": "accessories",
-    "price": 466.66
+    "price": 695.00
   },
   {
     "id": "p80",
-    "name": "Product 80",
-    "desc": "Sports item 80",
+    "name": "Adidas Predator Accuracy.1 FG Soccer Cleats",
+    "desc": "Elite Adidas soccer cleats, Primeknit strap, Controlframe soleplate, Zone Skin rubber elements for control",
     "category": "sports",
-    "price": 106.28
+    "price": 249.99
   },
   {
     "id": "p81",
-    "name": "Product 81",
-    "desc": "Outdoor item 81",
+    "name": "Buff Merino Wool Balaclava",
+    "desc": "Versatile Buff merino wool headwear, natural odor resistance, thermoregulating, machine washable, 12 wear styles",
     "category": "outdoor",
-    "price": 264.17
+    "price": 35.00
   },
   {
     "id": "p82",
-    "name": "Product 82",
-    "desc": "Outdoor item 82",
+    "name": "Outdoor Research Helium Rain Jacket",
+    "desc": "Ultralight OR waterproof jacket, GORE-TEX Paclite, stuffs into pocket, 8.4 oz, seam-taped construction",
     "category": "outdoor",
-    "price": 87.4
+    "price": 199.00
   },
   {
     "id": "p83",
-    "name": "Product 83",
-    "desc": "Accessories item 83",
+    "name": "Coach Tabby Shoulder Bag 26",
+    "desc": "Iconic Coach Tabby bag, polished pebble leather, adjustable strap, interior zip and card pockets, Coach charm",
     "category": "accessories",
-    "price": 449.43
+    "price": 395.00
   },
   {
     "id": "p84",
-    "name": "Product 84",
-    "desc": "Sports item 84",
+    "name": "Fitbit Charge 6 Fitness Tracker",
+    "desc": "Advanced Fitbit activity tracker, built-in GPS, Google Maps integration, ECG app, 7-day battery, swim-proof",
     "category": "sports",
-    "price": 323.16
+    "price": 159.95
   },
   {
     "id": "p85",
-    "name": "Product 85",
-    "desc": "Outdoor item 85",
+    "name": "Leki Cressida FX Carbon Trail Running Poles",
+    "desc": "Lightweight Leki trail running poles, carbon shaft, Shark skin grip, SpeedLock 2 lever lock, foldable",
     "category": "outdoor",
-    "price": 169.98
+    "price": 169.95
   },
   {
     "id": "p86",
-    "name": "Product 86",
-    "desc": "Outdoor item 86",
+    "name": "Black Diamond Distance Carbon Z Trekking Poles",
+    "desc": "Ultralight Black Diamond Z-poles, carbon construction, 3-section fold, FlickLock Pro, 3.8 oz per pole",
     "category": "outdoor",
-    "price": 146.66
+    "price": 189.95
   },
   {
     "id": "p87",
-    "name": "Product 87",
-    "desc": "Accessories item 87",
+    "name": "Peak Design Everyday Backpack 20L",
+    "desc": "Versatile Peak Design camera and carry bag, MagLatch closure, weatherproof, padded dividers, laptop sleeve",
     "category": "accessories",
-    "price": 117.88
+    "price": 279.95
   },
   {
     "id": "p88",
-    "name": "Product 88",
-    "desc": "Sports item 88",
+    "name": "Garmin Instinct 2 Solar Smartwatch",
+    "desc": "Rugged Garmin GPS watch, solar charging, military-grade durability, multi-GNSS, ABC sensors, 145-day battery",
     "category": "sports",
-    "price": 233.59
+    "price": 399.99
   },
   {
     "id": "p89",
-    "name": "Product 89",
-    "desc": "Sports item 89",
+    "name": "Polar Vantage V2 Premium Multisport Watch",
+    "desc": "Elite Polar running and triathlon watch, FuelWise fueling guide, Running Power, Recovery Pro, music controls",
     "category": "sports",
-    "price": 251.84
+    "price": 499.95
   },
   {
     "id": "p90",
-    "name": "Product 90",
-    "desc": "Accessories item 90",
+    "name": "Michael Kors Jet Set Travel Tote",
+    "desc": "Signature Michael Kors tote bag, saffiano leather, zip top closure, interior pockets, crossbody strap included",
     "category": "accessories",
-    "price": 62.17
+    "price": 248.00
   },
   {
     "id": "p91",
-    "name": "Product 91",
-    "desc": "Outdoor item 91",
+    "name": "Camp Chef Everest 2-Burner Camping Stove",
+    "desc": "High-output Camp Chef propane stove, 20,000 BTU per burner, matchless ignition, windscreen, carry bag included",
     "category": "outdoor",
-    "price": 289.79
+    "price": 139.99
   },
   {
     "id": "p92",
-    "name": "Product 92",
-    "desc": "Sports item 92",
+    "name": "WHOOP 4.0 Fitness and Health Tracker",
+    "desc": "Advanced WHOOP wearable, 24/7 strain and recovery tracking, HRV, respiratory rate, sleep coaching, no screen",
     "category": "sports",
-    "price": 350.2
+    "price": 239.00
   },
   {
     "id": "p93",
-    "name": "Product 93",
-    "desc": "Apparel item 93",
+    "name": "Gymshark Crest Pullover Hoodie",
+    "desc": "Comfortable Gymshark heavyweight hoodie, brushed inner fleece, relaxed fit, embroidered logo, kangaroo pocket",
     "category": "apparel",
-    "price": 37.95
+    "price": 65.00
   },
   {
     "id": "p94",
-    "name": "Product 94",
-    "desc": "Apparel item 94",
+    "name": "Lululemon ABC Slim-Fit Jogger",
+    "desc": "Versatile Lululemon jogger, anti-ball chafe design, Warpstreme fabric, dress-down to casual, tapered leg",
     "category": "apparel",
-    "price": 82.54
+    "price": 128.00
   },
   {
     "id": "p95",
-    "name": "Product 95",
-    "desc": "Outdoor item 95",
+    "name": "Stanley Adventure Quencher Travel Tumbler 40 oz",
+    "desc": "Stanley vacuum insulated tumbler, double-wall, stays cold 2 days or hot 7 hours, dishwasher safe, FlowState lid",
     "category": "outdoor",
-    "price": 222.34
+    "price": 45.00
   },
   {
     "id": "p96",
-    "name": "Product 96",
-    "desc": "Apparel item 96",
+    "name": "Champion Reverse Weave Pullover Hoodie",
+    "desc": "Classic Champion hoodie, reverse weave construction resists shrinkage, ribbed side panels, embroidered C logo",
     "category": "apparel",
-    "price": 59.85
+    "price": 55.00
   },
   {
     "id": "p97",
-    "name": "Product 97",
-    "desc": "Outdoor item 97",
+    "name": "Nalgene Sustain Tritan 32 oz Wide-Mouth Bottle",
+    "desc": "Classic Nalgene water bottle, made from 50% recycled material, BPA-free Tritan, leak-proof, dishwasher safe",
     "category": "outdoor",
-    "price": 412.99
+    "price": 15.95
   },
   {
     "id": "p98",
-    "name": "Product 98",
-    "desc": "Outdoor item 98",
+    "name": "Katadyn BeFree 1L Collapsible Water Filter",
+    "desc": "Fast-flowing Katadyn filter, EZ-Clean membrane, 1L SoftFlask, 0.1 micron filtration, 1000L capacity",
     "category": "outdoor",
-    "price": 129.75
+    "price": 49.95
   },
   {
     "id": "p99",
-    "name": "Product 99",
-    "desc": "Shoes item 99",
+    "name": "Salomon Speedcross 6 Trail Running Shoe",
+    "desc": "Aggressive Salomon trail shoe, Contagrip outsole with deep lugs, SensiFit cradle, EnergyCell midsole",
     "category": "shoes",
-    "price": 493.09
+    "price": 134.95
   },
   {
     "id": "p100",
-    "name": "Product 100",
-    "desc": "Apparel item 100",
+    "name": "Carhartt WIP Chase Pullover Hoodie",
+    "desc": "Carhartt workwear-inspired hoodie, 13 oz cotton fleece, relaxed fit, embroidered Heart C logo, kangaroo pocket",
     "category": "apparel",
-    "price": 421.73
+    "price": 118.00
   }
 ]
