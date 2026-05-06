@@ -230,7 +230,7 @@ def main():
     rfm = engineer_rfm_features(df)
     
     # Step 3: Label churn
-    rfm = label_churn(rfm, churn_threshold_days=90)
+    rfm = label_churn(rfm, churn_threshold_days=45)
     
     # Step 4: Train model
     model, scaler = train_churn_model(rfm, str(model_output_path))

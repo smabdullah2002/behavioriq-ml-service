@@ -1,0 +1,448 @@
+{
+  "timestamp": "2026-05-06T11:02:33.818466",
+  "target_url": "http://127.0.0.1:8000",
+  "categories": {
+    "high_loyalty": {
+      "tests": [
+        {
+          "name": "VIP Customer - Daily Shopper",
+          "input": {
+            "days_since_last_purchase": 1,
+            "total_order_count": 100,
+            "avg_order_value": 200
+          },
+          "status": "success",
+          "duration_ms": 6.466150283813477,
+          "response": {
+            "churn_probability": 0.0044,
+            "churn_risk_level": "low",
+            "rfm_breakdown": {
+              "recency_score": 0.9973,
+              "frequency_score": 1.0,
+              "monetary_score": 0.4
+            },
+            "recommended_action": "none",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Loyal Regular - Weekly Purchases",
+          "input": {
+            "days_since_last_purchase": 7,
+            "total_order_count": 52,
+            "avg_order_value": 85
+          },
+          "status": "success",
+          "duration_ms": 8.183956146240234,
+          "response": {
+            "churn_probability": 0.1461,
+            "churn_risk_level": "low",
+            "rfm_breakdown": {
+              "recency_score": 0.9808,
+              "frequency_score": 1.0,
+              "monetary_score": 0.17
+            },
+            "recommended_action": "none",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Consistent Buyer - Bi-weekly",
+          "input": {
+            "days_since_last_purchase": 14,
+            "total_order_count": 24,
+            "avg_order_value": 120
+          },
+          "status": "success",
+          "duration_ms": 13.02027702331543,
+          "response": {
+            "churn_probability": 0.1422,
+            "churn_risk_level": "low",
+            "rfm_breakdown": {
+              "recency_score": 0.9616,
+              "frequency_score": 0.48,
+              "monetary_score": 0.24
+            },
+            "recommended_action": "none",
+            "model_type": "real_trained"
+          },
+          "error": null
+        }
+      ],
+      "stats": {
+        "count": 3,
+        "successful": 3,
+        "failed": 0,
+        "avg_probability": 0.09756666666666665,
+        "min_probability": 0.0044,
+        "max_probability": 0.1461
+      }
+    },
+    "moderate_risk": {
+      "tests": [
+        {
+          "name": "Occasional Shopper",
+          "input": {
+            "days_since_last_purchase": 30,
+            "total_order_count": 8,
+            "avg_order_value": 65
+          },
+          "status": "success",
+          "duration_ms": 5.232334136962891,
+          "response": {
+            "churn_probability": 0.4363,
+            "churn_risk_level": "medium",
+            "rfm_breakdown": {
+              "recency_score": 0.9178,
+              "frequency_score": 0.16,
+              "monetary_score": 0.13
+            },
+            "recommended_action": "retention_offer",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Seasonal Buyer",
+          "input": {
+            "days_since_last_purchase": 45,
+            "total_order_count": 4,
+            "avg_order_value": 150
+          },
+          "status": "success",
+          "duration_ms": 8.252859115600586,
+          "response": {
+            "churn_probability": 0.474,
+            "churn_risk_level": "medium",
+            "rfm_breakdown": {
+              "recency_score": 0.8767,
+              "frequency_score": 0.08,
+              "monetary_score": 0.3
+            },
+            "recommended_action": "retention_offer",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Browsing Customer",
+          "input": {
+            "days_since_last_purchase": 60,
+            "total_order_count": 2,
+            "avg_order_value": 35
+          },
+          "status": "success",
+          "duration_ms": 6.936788558959961,
+          "response": {
+            "churn_probability": 0.9487,
+            "churn_risk_level": "critical",
+            "rfm_breakdown": {
+              "recency_score": 0.8356,
+              "frequency_score": 0.04,
+              "monetary_score": 0.07
+            },
+            "recommended_action": "win_back_pricing",
+            "model_type": "real_trained"
+          },
+          "error": null
+        }
+      ],
+      "stats": {
+        "count": 3,
+        "successful": 3,
+        "failed": 0,
+        "avg_probability": 0.6196666666666667,
+        "min_probability": 0.4363,
+        "max_probability": 0.9487
+      }
+    },
+    "high_risk": {
+      "tests": [
+        {
+          "name": "Dormant Customer - 3 Months",
+          "input": {
+            "days_since_last_purchase": 90,
+            "total_order_count": 3,
+            "avg_order_value": 50
+          },
+          "status": "success",
+          "duration_ms": 9.65261459350586,
+          "response": {
+            "churn_probability": 0.9987,
+            "churn_risk_level": "critical",
+            "rfm_breakdown": {
+              "recency_score": 0.7534,
+              "frequency_score": 0.06,
+              "monetary_score": 0.1
+            },
+            "recommended_action": "win_back_pricing",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Long Inactive - 6 Months",
+          "input": {
+            "days_since_last_purchase": 180,
+            "total_order_count": 1,
+            "avg_order_value": 75
+          },
+          "status": "success",
+          "duration_ms": 6.518363952636719,
+          "response": {
+            "churn_probability": 1.0,
+            "churn_risk_level": "critical",
+            "rfm_breakdown": {
+              "recency_score": 0.5068,
+              "frequency_score": 0.02,
+              "monetary_score": 0.15
+            },
+            "recommended_action": "win_back_pricing",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Very High Risk - 1 Year",
+          "input": {
+            "days_since_last_purchase": 365,
+            "total_order_count": 1,
+            "avg_order_value": 20
+          },
+          "status": "success",
+          "duration_ms": 6.458282470703125,
+          "response": {
+            "churn_probability": 1.0,
+            "churn_risk_level": "critical",
+            "rfm_breakdown": {
+              "recency_score": 0.0,
+              "frequency_score": 0.02,
+              "monetary_score": 0.04
+            },
+            "recommended_action": "win_back_pricing",
+            "model_type": "real_trained"
+          },
+          "error": null
+        }
+      ],
+      "stats": {
+        "count": 3,
+        "successful": 3,
+        "failed": 0,
+        "avg_probability": 0.9995666666666666,
+        "min_probability": 0.9987,
+        "max_probability": 1.0
+      }
+    },
+    "edge_cases": {
+      "tests": [
+        {
+          "name": "Brand New Customer",
+          "input": {
+            "days_since_last_purchase": 0,
+            "total_order_count": 1,
+            "avg_order_value": 100
+          },
+          "status": "success",
+          "duration_ms": 4.286050796508789,
+          "response": {
+            "churn_probability": 0.366,
+            "churn_risk_level": "medium",
+            "rfm_breakdown": {
+              "recency_score": 1.0,
+              "frequency_score": 0.02,
+              "monetary_score": 0.2
+            },
+            "recommended_action": "retention_offer",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "High Value, Low Frequency",
+          "input": {
+            "days_since_last_purchase": 90,
+            "total_order_count": 1,
+            "avg_order_value": 5000
+          },
+          "status": "success",
+          "duration_ms": 5.792379379272461,
+          "response": {
+            "churn_probability": 0.9998,
+            "churn_risk_level": "critical",
+            "rfm_breakdown": {
+              "recency_score": 0.7534,
+              "frequency_score": 0.02,
+              "monetary_score": 1.0
+            },
+            "recommended_action": "win_back_pricing",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Low Value, High Frequency",
+          "input": {
+            "days_since_last_purchase": 5,
+            "total_order_count": 100,
+            "avg_order_value": 5
+          },
+          "status": "success",
+          "duration_ms": 9.52458381652832,
+          "response": {
+            "churn_probability": 0.2172,
+            "churn_risk_level": "low",
+            "rfm_breakdown": {
+              "recency_score": 0.9863,
+              "frequency_score": 1.0,
+              "monetary_score": 0.01
+            },
+            "recommended_action": "none",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Zero Order Value",
+          "input": {
+            "days_since_last_purchase": 20,
+            "total_order_count": 5,
+            "avg_order_value": 0
+          },
+          "status": "success",
+          "duration_ms": 7.455348968505859,
+          "response": {
+            "churn_probability": 0.4989,
+            "churn_risk_level": "medium",
+            "rfm_breakdown": {
+              "recency_score": 0.9452,
+              "frequency_score": 0.1,
+              "monetary_score": 0.0
+            },
+            "recommended_action": "retention_offer",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Extreme Values",
+          "input": {
+            "days_since_last_purchase": 730,
+            "total_order_count": 500,
+            "avg_order_value": 50000
+          },
+          "status": "success",
+          "duration_ms": 6.810665130615234,
+          "response": {
+            "churn_probability": 1.0,
+            "churn_risk_level": "critical",
+            "rfm_breakdown": {
+              "recency_score": 0.0,
+              "frequency_score": 1.0,
+              "monetary_score": 1.0
+            },
+            "recommended_action": "win_back_pricing",
+            "model_type": "real_trained"
+          },
+          "error": null
+        }
+      ],
+      "stats": {
+        "count": 5,
+        "successful": 5,
+        "failed": 0,
+        "avg_probability": 0.61638,
+        "min_probability": 0.2172,
+        "max_probability": 1.0
+      }
+    },
+    "rfm_variations": {
+      "tests": [
+        {
+          "name": "High R, Medium F, Low M",
+          "input": {
+            "days_since_last_purchase": 5,
+            "total_order_count": 10,
+            "avg_order_value": 20
+          },
+          "status": "success",
+          "duration_ms": 7.329225540161133,
+          "response": {
+            "churn_probability": 0.3422,
+            "churn_risk_level": "medium",
+            "rfm_breakdown": {
+              "recency_score": 0.9863,
+              "frequency_score": 0.2,
+              "monetary_score": 0.04
+            },
+            "recommended_action": "retention_offer",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Low R, High F, Medium M",
+          "input": {
+            "days_since_last_purchase": 120,
+            "total_order_count": 50,
+            "avg_order_value": 75
+          },
+          "status": "success",
+          "duration_ms": 8.801698684692383,
+          "response": {
+            "churn_probability": 0.9987,
+            "churn_risk_level": "critical",
+            "rfm_breakdown": {
+              "recency_score": 0.6712,
+              "frequency_score": 1.0,
+              "monetary_score": 0.15
+            },
+            "recommended_action": "win_back_pricing",
+            "model_type": "real_trained"
+          },
+          "error": null
+        },
+        {
+          "name": "Medium R, Low F, High M",
+          "input": {
+            "days_since_last_purchase": 45,
+            "total_order_count": 2,
+            "avg_order_value": 500
+          },
+          "status": "success",
+          "duration_ms": 7.673025131225586,
+          "response": {
+            "churn_probability": 0.5545,
+            "churn_risk_level": "medium",
+            "rfm_breakdown": {
+              "recency_score": 0.8767,
+              "frequency_score": 0.04,
+              "monetary_score": 1.0
+            },
+            "recommended_action": "retention_offer",
+            "model_type": "real_trained"
+          },
+          "error": null
+        }
+      ],
+      "stats": {
+        "count": 3,
+        "successful": 3,
+        "failed": 0,
+        "avg_probability": 0.6318,
+        "min_probability": 0.3422,
+        "max_probability": 0.9987
+      }
+    }
+  },
+  "summary": {
+    "total_tests": 17,
+    "successful": 17,
+    "failed": 0,
+    "errors": 0,
+    "total_duration_ms": 128.39460372924805,
+    "avg_duration_ms": 7.552623748779297
+  }
+}

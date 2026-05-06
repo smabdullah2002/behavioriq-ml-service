@@ -31,6 +31,20 @@ def _clamp(value: float) -> float:
     return float(max(0.0, min(1.0, value)))
 
 
+def _calibrated_risk_score(days: float, orders: float, value: float) -> float:
+    """Formula-based risk score calibrated for SME e-commerce demo ranges.
+
+    Caps recency at 90 days (beyond that = fully churned), orders at 20,
+    and monetary at 200. These ranges give smooth graduated probabilities
+    across the expected input space and match the demo personas.
+    """
+    r = max(1.0, 5.0 * (1.0 - min(days, 90.0) / 90.0))
+    f = max(1.0, min(5.0, 1.0 + (orders / 20.0) * 4.0))
+    m = max(1.0, min(5.0, 1.0 + (value / 200.0) * 4.0))
+    composite = (r * 0.4) + (f * 0.35) + (m * 0.25)
+    return _clamp(1.0 - composite / 5.0)
+
+
 def normalize_rfm(days_since_last_purchase: Any, total_order_count: Any, avg_order_value: Any) -> Tuple[float, float, float]:
     """Turn raw churn inputs into 0-1 scores."""
     try:
@@ -117,7 +131,7 @@ def predict_churn(model: LogisticRegression, days_since_last_purchase: Any, tota
         interaction = days_log * orders
         features = np.array([[days_log, orders, value, interaction]])
         features = scaler.transform(features)
-        probability = float(model.predict_proba(features)[0][1])
+        ml_probability = float(model.predict_proba(features)[0][1])
         model_type = "real_trained"
     else:
         # Fallback: use manual 0-1 normalization
@@ -127,9 +141,19 @@ def predict_churn(model: LogisticRegression, days_since_last_purchase: Any, tota
             avg_order_value,
         )
         features = np.array([[recency_score, frequency_score, monetary_score]])
-        probability = float(model.predict_proba(features)[0][1])
+        ml_probability = float(model.predict_proba(features)[0][1])
         model_type = "fallback_synthetic"
-    
+
+    # The Kaggle-trained model only fires confidently above ~90 days because
+    # its training distribution spans 0-738 days. Blend with a formula calibrated
+    # to 90-day churn logic so intermediate cases (20-60 days) get graduated risk.
+    calibrated = _calibrated_risk_score(
+        float(days_since_last_purchase),
+        float(total_order_count),
+        float(avg_order_value),
+    )
+    probability = max(ml_probability, calibrated)
+
     # Calculate 0-1 breakdown for response (always use normalize_rfm for consistency)
     recency_score, frequency_score, monetary_score = normalize_rfm(
         days_since_last_purchase,
