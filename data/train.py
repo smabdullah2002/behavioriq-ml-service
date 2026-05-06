@@ -21,7 +21,7 @@ def load_and_prepare_data(csv_path: str) -> pd.DataFrame:
     print(f"Loading data from {csv_path}...")
     df = pd.read_csv(csv_path)
     
-    print(f"\n📊 Data Cleaning:")
+    print(f"\nData Cleaning:")
     print(f"  Initial rows: {len(df)}")
     
     # Step 1: Remove rows with missing critical fields
@@ -216,7 +216,7 @@ def main():
     model_output_path = Path(__file__).parent.parent / 'saved_models' / 'churn_model.pkl'
     
     if not csv_path.exists():
-        print(f"❌ Error: CSV not found at {csv_path}")
+        print(f"[ERROR] CSV not found at {csv_path}")
         return
     
     print("=" * 70)

@@ -151,7 +151,7 @@ test_cases = [
 def test_churn_endpoint():
     """Test all churn prediction cases."""
     print("=" * 80)
-    print("🧪 CHURN ENDPOINT TEST CASES")
+    print("CHURN ENDPOINT TEST CASES")
     print("=" * 80)
     
     results = []
@@ -159,7 +159,7 @@ def test_churn_endpoint():
     failed = 0
     
     for i, test_case in enumerate(test_cases, 1):
-        print(f"\n📋 Test {i}/{len(test_cases)}: {test_case['name']}")
+        print(f"\nTest {i}/{len(test_cases)}: {test_case['name']}")
         print(f"   Input: {test_case['data']}")
         print(f"   Expected: {test_case['expected']}")
         
@@ -205,14 +205,14 @@ def test_churn_endpoint():
                         validation_errors.append(f"RFM score out of range: {key}={val}")
                 
                 if is_valid:
-                    print(f"   ✅ Status: 200 OK")
+                    print(f"   [PASS] Status: 200 OK")
                     passed += 1
                 else:
-                    print(f"   ⚠️  Status: 200 OK (Validation warnings)")
+                    print(f"   [WARN] Status: 200 OK (Validation warnings)")
                     for error in validation_errors:
                         print(f"      - {error}")
                 
-                print(f"   📊 Result:")
+                print(f"   Result:")
                 print(f"      - Churn Probability: {churn_prob:.4f}")
                 print(f"      - Risk Level: {risk_level.upper()}")
                 print(f"      - Action: {result['recommended_action']}")
@@ -229,7 +229,7 @@ def test_churn_endpoint():
                     "rfm_breakdown": rfm
                 })
             else:
-                print(f"   ❌ Status: {response.status_code}")
+                print(f"   [FAIL] Status: {response.status_code}")
                 print(f"   Error: {response.text}")
                 failed += 1
                 results.append({
@@ -239,7 +239,7 @@ def test_churn_endpoint():
                 })
         
         except requests.exceptions.ConnectionError:
-            print(f"   ❌ Error: Cannot connect to {BASE_URL}")
+            print(f"   [ERROR] Cannot connect to {BASE_URL}")
             print(f"   Make sure the service is running on port 8001")
             failed += 1
             results.append({
@@ -249,7 +249,7 @@ def test_churn_endpoint():
             })
             break
         except Exception as e:
-            print(f"   ❌ Error: {e}")
+            print(f"   [ERROR] {e}")
             failed += 1
             results.append({
                 "test_name": test_case['name'],
@@ -259,15 +259,15 @@ def test_churn_endpoint():
     
     # Print summary
     print("\n" + "=" * 80)
-    print("📊 TEST SUMMARY")
+    print("TEST SUMMARY")
     print("=" * 80)
     print(f"Total Tests: {len(test_cases)}")
-    print(f"✅ Passed: {passed}")
-    print(f"⚠️  Warnings: {len([r for r in results if r['status'] == 'warning'])}")
-    print(f"❌ Failed: {failed}")
+    print(f"Passed: {passed}")
+    print(f"Warnings: {len([r for r in results if r['status'] == 'warning'])}")
+    print(f"Failed: {failed}")
     
     # Group by risk level
-    print("\n📈 RISK LEVEL DISTRIBUTION:")
+    print("\nRISK LEVEL DISTRIBUTION:")
     risk_levels = {}
     for result in results:
         if result['status'] != 'failed':
@@ -282,12 +282,12 @@ def test_churn_endpoint():
             print(f"      - {test_name}")
     
     # Show probability statistics
-    print("\n📉 PROBABILITY STATISTICS:")
+    print("\nPROBABILITY STATISTICS:")
     probabilities = [r['churn_probability'] for r in results if 'churn_probability' in r]
     if probabilities:
         print(f"   Min: {min(probabilities):.4f}")
         print(f"   Max: {max(probabilities):.4f}")
         print(f"   Mean: {sum(probabilities) / len(probabilities):.4f}")
     
-    print("\n✨ Test complete!")
+    print("\nTest complete!")
     print("=" * 80)
