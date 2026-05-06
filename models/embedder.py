@@ -31,29 +31,35 @@ class ProductEmbedder:
         for i, p in enumerate(products):
             self.product_vectors[p['id']] = vectors[i].toarray().flatten()
     
+    def _dim(self) -> int:
+        """Return actual vector dimension from fitted data."""
+        if self.product_vectors:
+            return len(next(iter(self.product_vectors.values())))
+        return 100
+
     def get_product_vector(self, product_id: str) -> np.ndarray:
         """Get pre-computed vector for a product."""
-        return self.product_vectors.get(product_id, np.zeros(100))
-    
-    def build_user_vector(self, product_ids: List[str], 
+        return self.product_vectors.get(product_id, np.zeros(self._dim()))
+
+    def build_user_vector(self, product_ids: List[str],
                           weights: List[float] = None) -> np.ndarray:
         """
         Build user behavioral vector from product vectors.
-        
+
         Args:
             product_ids: list of recently viewed product IDs
             weights: optional per-product weights
-        
+
         Returns:
             user vector as numpy array
         """
         if not product_ids:
-            return np.zeros(100)
-        
+            return np.zeros(self._dim())
+
         if weights is None:
             weights = [1.0] * len(product_ids)
-        
-        weighted_sum = np.zeros(100)
+
+        weighted_sum = np.zeros(self._dim())
         total_weight = 0
         
         for pid, w in zip(product_ids, weights):

@@ -44,7 +44,11 @@ def initialize_seed_data(embedder, products_count=100):
     if embedder_path.exists():
         print(f"\n🔄 Loading saved embedder from saved_models/embedder.pkl...")
         try:
-            embedder = joblib.load(embedder_path)
+            loaded = joblib.load(embedder_path)
+            # Copy into the passed-in embedder so the caller's reference stays valid
+            embedder.vectorizer = loaded.vectorizer
+            embedder.product_vectors = loaded.product_vectors
+            embedder.corpus = loaded.corpus
             print(f"   ✓ Embedder loaded with {len(embedder.product_vectors)} products")
         except Exception as e:
             print(f"   ⚠ Error loading embedder: {e}")
