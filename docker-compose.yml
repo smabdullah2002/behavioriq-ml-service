@@ -1,0 +1,75 @@
+services:
+  # ─────────────────────────────────────────────
+  # Loki — log aggregation backend
+  # ─────────────────────────────────────────────
+  loki:
+    image: grafana/loki:2.9.7
+    container_name: behavioriq-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - observability
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ─────────────────────────────────────────────
+  # Grafana — visualization & log explorer
+  # ─────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: behavioriq-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - observability
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────
+  # BehaviorIQ ML Service (FastAPI)
+  # ─────────────────────────────────────────────
+  ml-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: behavioriq-ml-service
+    ports:
+      - "8001:8001"
+    environment:
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
+      - APP_ENV=hackathon
+    networks:
+      - observability
+    depends_on:
+      loki:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./saved_models:/app/saved_models
+
+volumes:
+  loki-data:
+  grafana-data:
+
+networks:
+  observability:
+    driver: bridge

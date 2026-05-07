@@ -2,6 +2,10 @@
 
 import numpy as np
 
+from logger import get_logger
+
+logger = get_logger(__name__)
+
 # Intent score weights (from design doc)
 INTENT_WEIGHTS = {
     "time_on_product_page": 0.20,

@@ -4,6 +4,10 @@ import numpy as np
 from numpy.linalg import norm
 from typing import List, Dict
 
+from logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     """Compute cosine similarity between two vectors."""

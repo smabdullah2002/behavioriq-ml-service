@@ -4,6 +4,10 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from typing import Dict, List
 
+from logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class ProductEmbedder:
     """Builds and manages TF-IDF product embeddings."""
@@ -30,6 +34,12 @@ class ProductEmbedder:
         
         for i, p in enumerate(products):
             self.product_vectors[p['id']] = vectors[i].toarray().flatten()
+
+        logger.info(
+            "Embedder fitted | products=%d | vocab_size=%d",
+            len(products),
+            len(self.vectorizer.vocabulary_) if self.vectorizer else 0,
+        )
     
     def _dim(self) -> int:
         """Return actual vector dimension from fitted data."""
