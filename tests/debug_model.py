@@ -8,11 +8,11 @@ MODEL_PATH = Path("saved_models/churn_model.pkl")
 SCALER_PATH = Path("saved_models/churn_scaler.pkl")
 
 print("=" * 80)
-print("🔍 MODEL & SCALER DEBUG")
+print("MODEL & SCALER DEBUG")
 print("=" * 80)
 
 # Check if files exist
-print(f"\n📁 File Check:")
+print(f"\nFile Check:")
 print(f"   Model exists: {MODEL_PATH.exists()} ({MODEL_PATH})")
 print(f"   Scaler exists: {SCALER_PATH.exists()} ({SCALER_PATH})")
 
@@ -26,25 +26,25 @@ if SCALER_PATH.exists():
     print(f"   Scaler size: {size_kb:.2f} KB")
 
 # Try loading
-print(f"\n📦 Loading Check:")
+print(f"\nLoading Check:")
 try:
     model = joblib.load(MODEL_PATH)
-    print(f"   ✅ Model loaded: {type(model).__name__}")
+    print(f"   Model loaded: {type(model).__name__}")
     print(f"   Coefficients: {model.coef_[0]}")
     print(f"   Intercept: {model.intercept_[0]}")
 except Exception as e:
-    print(f"   ❌ Model loading failed: {e}")
+    print(f"   Model loading failed: {e}")
 
 try:
     scaler = joblib.load(SCALER_PATH)
-    print(f"   ✅ Scaler loaded: {type(scaler).__name__}")
+    print(f"   Scaler loaded: {type(scaler).__name__}")
     print(f"   Scale: {scaler.scale_}")
     print(f"   Mean: {scaler.mean_}")
 except Exception as e:
-    print(f"   ❌ Scaler loading failed: {e}")
+    print(f"   Scaler loading failed: {e}")
 
 # Test prediction with raw values
-print(f"\n🧪 Test Prediction:")
+print(f"\nTest Prediction:")
 try:
     import numpy as np
     
@@ -69,6 +69,5 @@ try:
         print(f"   Probability (scaled): {prob_scaled:.4f}")
     
 except Exception as e:
-    print(f"   ❌ Prediction test failed: {e}")
-
+        print(f"   Prediction test failed: {e}")
 print("\n" + "=" * 80)

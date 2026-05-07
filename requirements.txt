@@ -7,3 +7,5 @@ joblib
 pydantic
 python-logging-loki
 requests
+requests
+scipy

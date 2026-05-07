@@ -1,4 +1,6 @@
 venv/*
 loki-data/
+temp_auto_push.bat
 grafana-data/
-.env
+.env.gitignore
+branch_structure.json

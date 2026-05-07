@@ -10,10 +10,21 @@ logger = get_logger(__name__)
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
-    """Compute cosine similarity between two vectors."""
-    if norm(a) == 0 or norm(b) == 0:
+    """Compute cosine similarity between two vectors.
+    Handles dimension mismatches by padding with zeros."""
+    # Ensure both vectors have the same dimension
+    max_dim = max(len(a), len(b))
+    a_padded = np.zeros(max_dim)
+    b_padded = np.zeros(max_dim)
+    a_padded[:len(a)] = a
+    b_padded[:len(b)] = b
+    
+    norm_a = norm(a_padded)
+    norm_b = norm(b_padded)
+    
+    if norm_a == 0 or norm_b == 0:
         return 0.0
-    return float(np.dot(a, b) / (norm(a) * norm(b)))
+    return float(np.dot(a_padded, b_padded) / (norm_a * norm_b))
 
 
 def rerank_candidates(user_vector: np.ndarray,
@@ -35,6 +46,12 @@ def rerank_candidates(user_vector: np.ndarray,
     if weights is None:
         weights = {"kw": 0.5, "cosine": 0.3, "popularity": 0.2}
     
+    # Determine vector dimension from product vectors
+    if product_vectors:
+        vec_dim = len(next(iter(product_vectors.values())))
+    else:
+        vec_dim = len(user_vector)
+    
     results = []
     
     for candidate in candidates:
@@ -42,8 +59,8 @@ def rerank_candidates(user_vector: np.ndarray,
         keyword_score = candidate.get("keyword_score", 0.5)
         popularity_score = candidate.get("popularity_score", 0.5)
         
-        # Get product vector
-        product_vec = product_vectors.get(product_id, np.zeros(len(user_vector)))
+        # Get product vector - use correct dimension for fallback
+        product_vec = product_vectors.get(product_id, np.zeros(vec_dim))
         
         # Compute cosine similarity
         cosine_score = cosine_similarity(user_vector, product_vec)
