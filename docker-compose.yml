@@ -43,6 +43,30 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+      prometheus:
+        condition: service_started
+
+  # ─────────────────────────────────────────────
+  # Prometheus — metrics store for Grafana
+  # ─────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: behavioriq-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    networks:
+      - observability
+    depends_on:
+      ml-service:
+        condition: service_started
 
   # ─────────────────────────────────────────────
   # BehaviorIQ ML Service (FastAPI)
@@ -69,6 +93,7 @@ services:
 volumes:
   loki-data:
   grafana-data:
+  prometheus-data:
 
 networks:
   observability:

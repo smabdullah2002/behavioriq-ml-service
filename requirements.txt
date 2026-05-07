@@ -7,5 +7,7 @@ joblib
 pydantic
 python-logging-loki
 requests
-requests
 scipy
+prometheus_client
+psutil
+nvidia-ml-py
