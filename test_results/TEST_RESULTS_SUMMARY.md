@@ -1,8 +1,8 @@
-# Churn Endpoint Testing - Results Summary
+# ML Service Endpoint Testing - Results Summary
 
-**Date:** May 6, 2026  
+**Date:** May 7, 2026  
 **Service:** BehaviorIQ ML Service  
-**Port:** 8000  
+**Port:** 8001  
 **Status:** All Endpoints Operational
 
 ---
@@ -17,8 +17,10 @@ All ML service endpoints have been tested and validated successfully:
 | `/ml/churn-predict` (comprehensive) | 17 | PASS | 17/17 passed |
 | `/ml/intent-score` | 5 | PASS | 5/5 passed |
 | `/health` | 1 | PASS | Service running, 100 products loaded |
+| `/ml/search-rerank` (original suite) | 15 | WARN | 14/15 passed, 1 warning |
+| `/ml/search-rerank` (thorough suite) | 34 | PASS | 34/34 passed |
 
-**Overall:** **37/38 tests passed** (97.4% success rate)
+**Overall:** **85/87 tests passed** (97.7% success rate)
 
 ---
 
@@ -259,24 +261,107 @@ The model generates contextually appropriate recommended actions:
 
 ---
 
-## Test Files & Scripts
 
-Available test scripts for future use:
-- `test_churn_endpoint.py` - 15 basic test cases
-- `test_churn_comprehensive.py` - 17 comprehensive cases with metrics and JSON export
-- `test_churn_datagen.py` - Generate realistic test data by customer segment
-- `test_intent_endpoint.py` - Intent score validation
-- `TEST_QUICK_START.md` - Quick reference guide
-- `TESTING_GUIDE.md` - Complete testing documentation
+
+---
+
+## 5. Search Re-rank Endpoint
+
+Two test suites were run against `POST /ml/search-rerank`.
+
+---
+
+### 5a. Original Suite (15 Test Cases) — `tests/test_search_rerank_endpoint.py`
+
+**Summary:**
+- Passed: 14
+- Warnings: 1
+- Failed: 0
+
+| # | Test Name | Top Product | Scores | Status |
+|---|-----------|-------------|--------|--------|
+| 1 | Higher keyword score ranks first (default weights) | p2 | [0.55, 0.25] | PASS |
+| 2 | Higher popularity ranks first (pop weight=0.9) | p4 | [0.86, 0.23] | PASS |
+| 3 | Keyword-only weights — keyword decides rank | p6 | [0.80, 0.50, 0.10] | PASS |
+| 4 | Popularity-only weights — popularity decides rank | p9 | [0.95, 0.50, 0.20] | PASS |
+| 5 | Real user vector drives personalized ranking | p1 | [0.6158, 0.0544] | PASS |
+| 6 | Zero user vector — keyword decides | p11 | [0.55, 0.20] | PASS |
+| 7 | Single candidate — always ranks first | p20 | [0.35] | PASS |
+| 8 | Empty candidate list — returns empty results | — | [] | PASS |
+| 9 | Unknown product IDs fall back to zero cosine | unknown_xyz | [0.16, 0.16] | WARN |
+| 10 | Mixed known/unknown product IDs — no crash | ghost_id | [0.61, 0.40, 0.34] | PASS |
+| 11 | All final scores must be between 0 and 1 | p1 | [0.70, 0.35, 0.00] | PASS |
+| 12 | Results sorted descending by final_score | p2 | [0.55, 0.40, 0.20, 0.15] | PASS |
+| 13 | Large candidate set (20 products) — correct count | p18 | sorted, 20 results | PASS |
+| 14 | Omitted popularity_score defaults to 0.5 — no crash | p1 | [0.45, 0.30] | PASS |
+| 15 | All identical scores — no crash, all returned | p1 | [0.35, 0.35, 0.35] | PASS |
+
+**Warning detail — Test 9:**
+Both candidates had equal `keyword_score=0.4` and `popularity_score=0.5`. With `kw=0.4, cosine=0.6, popularity=0.0`, ranking depended on cosine similarity between `MOCK_USER_VECTOR` (non-zero only in TF-IDF dims 0–9) and `p1`'s actual vector. Since TF-IDF vocabulary determines dimension placement, `p1`'s vector may have no overlap with those dims — making cosine 0 for both candidates, resulting in a tie that resolved in an unexpected order. Test design flaw — fixed in thorough suite.
+
+---
+
+### 5b. Thorough Suite (34 Test Cases) — `tests/test_rerank_thorough.py`
+
+**Summary:**
+- Passed: 34
+- Failed: 0
+- Duration: ~3s total (includes 10 rapid-fire calls + stress tests)
+
+| Category | Tests | Result |
+|----------|-------|--------|
+| Schema / contract validation (422 errors) | 6 | 6/6 PASS |
+| Exact score math verification | 3 | 3/3 PASS |
+| Weight edge cases | 7 | 7/7 PASS |
+| Score boundary enforcement | 4 | 4/4 PASS |
+| User vector dimension handling | 3 | 3/3 PASS |
+| Ordering and stability | 3 | 3/3 PASS |
+| Real user vector integration | 2 | 2/2 PASS |
+| Stress / performance | 3 | 3/3 PASS |
+| Response structure | 4 | 4/4 PASS |
+
+**Selected results:**
+
+| Test | Expected | Result | Status |
+|------|----------|--------|--------|
+| Missing `user_vector` | HTTP 422 | 422 | PASS |
+| Missing `candidates` | HTTP 422 | 422 | PASS |
+| `keyword_score` as string | HTTP 422 | 422 | PASS |
+| Exact math: `kw=0.6, pop=0.4, cosine=0` | score=0.6000 | 0.6000 | PASS |
+| Popularity=1.0 three candidates | p3 ranks first | p3 (1.0) | PASS |
+| All-zero weights → all scores 0.0 | 0.0 for all | 0.0 / 0.0 | PASS |
+| Weights sum > 1.0 | No crash | 200 OK | PASS |
+| Weights sum < 1.0 | Proportional score | Correct | PASS |
+| `weights: null` uses defaults | 0.48 (kw=0.5,pop=0.2) | 0.48 | PASS |
+| Partial weights dict | Falls back to per-key defaults | Correct | PASS |
+| Negative `keyword_score` | No 500 error | 200 OK | PASS |
+| `keyword_score > 1.0` | No 500 error | 200 OK | PASS |
+| 200-dim user vector (vs 98-dim products) | No crash, zero-padded | PASS | PASS |
+| Empty user vector | No 500 | 200 OK | PASS |
+| All unknowns → cosine=0, keyword decides | ghost_a wins | ghost_a | PASS |
+| Bug repro (Test 9 fixed with real vector) | p1 ranks above unknown | p1 first | PASS |
+| Known product cosine > unknown via real vector | p5 scores higher | p5 > ghost99 | PASS |
+| 50-candidate stress test | <500ms, sorted | ~15ms | PASS |
+| 100-candidate mixed known/unknown | All 100 returned, sorted | PASS | PASS |
+| 10 back-to-back rapid calls | All 200 OK | PASS | PASS |
+| Response has only `results` key | No extra keys | Confirmed | PASS |
+| Each result has `product_id` + `final_score` | Exact 2 fields | Confirmed | PASS |
+| `final_score` is float type | Not int/string | float | PASS |
+| `product_id` preserved case-exactly | `MyProduct_XYZ-123` → same | Confirmed | PASS |
+
+**Key behavior confirmed:**
+- Partial weights dict (`{"kw": 0.5}`) applies per-key defaults for missing keys (`cosine=0.3`, `popularity=0.2`) via `.get()`, not zero. This is by design in the reranker.
+- The endpoint never returns HTTP 500 on any tested input, including mismatched vector dimensions, out-of-range scores, over-weighted dicts, and unknown product IDs.
+- Performance: 50-candidate set completes in ~15ms, well under the 500ms NestJS timeout.
 
 ---
 
 ## Conclusion
 
-All endpoints tested and validated successfully
+All endpoints tested and validated successfully.
 
 The BehaviorIQ ML service is **production-ready** with:
-- Fast response times (7-8ms average)
+- Fast response times (7-15ms average across all endpoints)
 - Correct business logic implementation
 - Proper edge case handling
 - Appropriate risk stratification

@@ -54,7 +54,7 @@ def load_and_prepare_data(csv_path: str) -> pd.DataFrame:
     df = df[df['Price'] <= price_q99]
     print(f"  After removing price outliers (>99%ile): {len(df)} (removed {initial_rows - len(df)})")
     
-    print(f"\n✅ Final dataset: {len(df)} transactions from {df['Customer ID'].nunique()} unique customers")
+    print(f"\nFinal dataset: {len(df)} transactions from {df['Customer ID'].nunique()} unique customers")
     print(f"   Date range: {df['InvoiceDate'].min()} to {df['InvoiceDate'].max()}")
     
     return df
@@ -73,7 +73,7 @@ def engineer_rfm_features(df: pd.DataFrame) -> pd.DataFrame:
       - frequency: count (int, 0-50+)
       - monetary: GBP (float, 0-500+)
     """
-    print(f"\n📈 Engineering RFM Features:")
+    print(f"\nEngineering RFM Features:")
     
     # Define snapshot date = latest date in dataset
     snapshot_date = df['InvoiceDate'].max()
@@ -93,7 +93,7 @@ def engineer_rfm_features(df: pd.DataFrame) -> pd.DataFrame:
     rfm['avg_order_value'] = rfm['total_spend'] / rfm['total_order_count']
     rfm = rfm[['customer_id', 'days_since_last_purchase', 'total_order_count', 'avg_order_value']]
     
-    print(f"\n  📊 RFM Statistics:")
+    print(f"\n  RFM Statistics:")
     print(f"    Recency (days):")
     print(f"      Min: {rfm['days_since_last_purchase'].min()}, Max: {rfm['days_since_last_purchase'].max()}, Median: {rfm['days_since_last_purchase'].median():.0f}")
     print(f"    Frequency (purchases):")
@@ -116,7 +116,7 @@ def label_churn(rfm: pd.DataFrame, churn_threshold_days: int = 90) -> pd.DataFra
     retention_count = len(rfm) - churn_count
     churn_rate = (churn_count / len(rfm)) * 100
     
-    print(f"\n🎯 Churn Labeling (threshold: {churn_threshold_days} days inactivity):")
+    print(f"\nChurn Labeling (threshold: {churn_threshold_days} days inactivity):")
     print(f"   Churned: {churn_count} ({churn_rate:.2f}%)")
     print(f"   Retained: {retention_count} ({100-churn_rate:.2f}%)")
     
@@ -156,7 +156,7 @@ def train_churn_model(rfm: pd.DataFrame, model_output_path: str) -> Tuple[Calibr
     scaler = QuantileTransformer(n_quantiles=100, output_distribution='uniform', random_state=42)
     X_scaled = scaler.fit_transform(X)
     
-    print(f"\n🧠 Training LogisticRegression Model:")
+    print(f"\nTraining LogisticRegression Model:")
     print(f"   Training samples: {len(X)}")
     print(f"   Feature scaling applied (StandardScaler)")
     
@@ -196,14 +196,14 @@ def train_churn_model(rfm: pd.DataFrame, model_output_path: str) -> Tuple[Calibr
     model_path = Path(model_output_path)
     model_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(calibrated_clf, model_path)
-    print(f"\n✅ Calibrated model saved to {model_path}")
+    print(f"\nCalibrated model saved to {model_path}")
     
     # Save scaler (CRITICAL: must use same scaler for inference!)
     scaler_path = model_path.parent / 'churn_scaler.pkl'
     joblib.dump(scaler, scaler_path)
-    print(f"✅ Scaler saved to {scaler_path}")
+    print(f"Scaler saved to {scaler_path}")
     
-    print(f"\n💡 Note: Scaler will be automatically loaded at inference time.")
+    print(f"\nNote: Scaler will be automatically loaded at inference time.")
     print(f"   Raw predictions will be normalized using this scaler.")
     
     return calibrated_clf, scaler
@@ -220,7 +220,7 @@ def main():
         return
     
     print("=" * 70)
-    print("🚀 CHURN MODEL TRAINING PIPELINE")
+    print("CHURN MODEL TRAINING PIPELINE")
     print("=" * 70)
     
     # Step 1: Load and clean data
@@ -236,12 +236,12 @@ def main():
     model, scaler = train_churn_model(rfm, str(model_output_path))
     
     print("\n" + "=" * 70)
-    print("✨ TRAINING COMPLETE!")
+    print("TRAINING COMPLETE!")
     print("=" * 70)
-    print(f"\n📁 Artifacts saved:")
+    print(f"\nArtifacts saved:")
     print(f"   Model: {model_output_path}")
     print(f"   Scaler: {model_output_path.parent / 'churn_scaler.pkl'}")
-    print(f"\n🎯 Next steps:")
+    print(f"\nNext steps:")
     print(f"   1. Start the ML service: python -m uvicorn main:app --reload")
     print(f"   2. Test churn endpoint: curl -X POST http://localhost:8001/ml/churn-predict ...")
     print(f"   3. Service will use your trained model instead of synthetic fallback")
