@@ -61,7 +61,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{service=\"ml-service\", level=\"error\"}",
+          "expr": "{service=\"ml-service\", severity=\"error\"}",
           "refId": "A"
         }
       ]
@@ -123,13 +123,13 @@
       "gridPos": { "h": 7, "w": 24, "x": 0, "y": 6 },
       "id": 5,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
-      "title": "Log Volume by Level",
+      "title": "Log Volume by Severity",
       "type": "timeseries",
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum by (level) (count_over_time({service=\"ml-service\"}[1m]))",
-          "legendFormat": "{{level}}",
+          "expr": "sum by (severity) (count_over_time({service=\"ml-service\"}[1m]))",
+          "legendFormat": "{{severity}}",
           "refId": "A"
         }
       ]
