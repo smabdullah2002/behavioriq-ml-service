@@ -5,6 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from typing import Dict, List
 
 from logger import get_logger
+from metrics import record_local_cache_lookup
 
 logger = get_logger(__name__)
 
@@ -49,7 +50,12 @@ class ProductEmbedder:
 
     def get_product_vector(self, product_id: str) -> np.ndarray:
         """Get pre-computed vector for a product."""
-        return self.product_vectors.get(product_id, np.zeros(self._dim()))
+        vec = self.product_vectors.get(product_id)
+        if vec is not None:
+            record_local_cache_lookup(True)
+            return vec
+        record_local_cache_lookup(False)
+        return np.zeros(self._dim())
 
     def build_user_vector(self, product_ids: List[str],
                           weights: List[float] = None) -> np.ndarray:

@@ -5,8 +5,11 @@ from numpy.linalg import norm
 from typing import List, Dict
 
 from logger import get_logger
+from metrics import VECTOR_LOOKUP_FAILURES
 
 logger = get_logger(__name__)
+
+_RERANK_ENDPOINT = "/ml/search-rerank"
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
@@ -58,7 +61,10 @@ def rerank_candidates(user_vector: np.ndarray,
         product_id = candidate["product_id"]
         keyword_score = candidate.get("keyword_score", 0.5)
         popularity_score = candidate.get("popularity_score", 0.5)
-        
+
+        if product_id not in product_vectors:
+            VECTOR_LOOKUP_FAILURES.labels(endpoint=_RERANK_ENDPOINT).inc()
+
         # Get product vector - use correct dimension for fallback
         product_vec = product_vectors.get(product_id, np.zeros(vec_dim))
         
