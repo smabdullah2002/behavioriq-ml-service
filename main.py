@@ -4,14 +4,30 @@ import time
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.responses import Response
 import numpy as np
 from pathlib import Path
 
 # ── Centralized logging — must be imported before any other local module ─────
 from logger import setup_logging, get_logger
+from metrics import (
+    BUSINESS_ERRORS,
+    MALFORMED_OUTPUTS,
+    VECTOR_LOOKUP_FAILURES,
+    metrics_payload,
+    observe_http_request,
+    observe_step,
+    refresh_resource_gauges,
+)
 
 setup_logging(level=logging.INFO)
 logger = get_logger(__name__)
+
+_EP_INTENT = "/ml/intent-score"
+_EP_CHURN = "/ml/churn-predict"
+_EP_CHURN_FORMULA = "/ml/churn-predict-formula"
+_EP_USER_VECTOR = "/ml/user-vector"
+_EP_SEARCH_RERANK = "/ml/search-rerank"
 
 # ── Domain imports ────────────────────────────────────────────────────────────
 from models.intent import intent_score
@@ -38,20 +54,32 @@ churn_model = None
 churn_scaler = None
 
 
-# ── Middleware: per-request latency logging ───────────────────────────────────
+# ── Middleware: per-request latency logging + Prometheus ────────────────────
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def log_and_metrics(request: Request, call_next):
     start = time.perf_counter()
     response = await call_next(request)
-    elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
+    elapsed_s = time.perf_counter() - start
+    elapsed_ms = round(elapsed_s * 1000, 2)
+    path = request.url.path
     logger.info(
         "HTTP %s %s → %s  (%sms)",
         request.method,
-        request.url.path,
+        path,
         response.status_code,
         elapsed_ms,
     )
+    refresh_resource_gauges()
+    if path != "/metrics":
+        observe_http_request(request.method, path, response.status_code, elapsed_s)
     return response
+
+
+@app.get("/metrics")
+def prometheus_metrics():
+    """Prometheus scrape endpoint (configure Grafana via Prometheus datasource)."""
+    body, ctype = metrics_payload()
+    return Response(content=body, media_type=ctype)
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
@@ -80,8 +108,10 @@ def startup_event():
 def ml_intent(req: IntentRequest):
     """Compute user intent score."""
     raw = req.dict()
-    features = normalize_intent_features(raw)
-    res = intent_score(features)
+    with observe_step(_EP_INTENT, "normalize_features"):
+        features = normalize_intent_features(raw)
+    with observe_step(_EP_INTENT, "intent_score"):
+        res = intent_score(features)
 
     if isinstance(res, dict):
         score = res.get("intent_score", 0.0)
@@ -103,6 +133,7 @@ def ml_intent(req: IntentRequest):
         )
 
     logger.warning("intent-score fallback triggered — res was not a dict")
+    MALFORMED_OUTPUTS.labels(reason="intent_score_shape").inc()
     return IntentResponse(intent_score=0.0, score_bucket="churn_risk", dominant_signal="none")
 
 
@@ -110,13 +141,14 @@ def ml_intent(req: IntentRequest):
 def ml_churn(req: ChurnRequest):
     """Predict churn probability."""
     try:
-        result = predict_churn(
-            churn_model,
-            req.days_since_last_purchase,
-            req.total_order_count,
-            req.avg_order_value,
-            scaler=churn_scaler,
-        )
+        with observe_step(_EP_CHURN, "predict_churn"):
+            result = predict_churn(
+                churn_model,
+                req.days_since_last_purchase,
+                req.total_order_count,
+                req.avg_order_value,
+                scaler=churn_scaler,
+            )
 
         logger.info(
             "churn-predict | days=%s | orders=%s | avg_value=%s | churn_prob=%.4f | risk=%s | model=%s",
@@ -128,6 +160,9 @@ def ml_churn(req: ChurnRequest):
             result.get("model_type", "unknown"),
         )
 
+        if result.get("churn_risk_level") == "error":
+            BUSINESS_ERRORS.labels(endpoint=_EP_CHURN).inc()
+
         return ChurnResponse(**result)
 
     except Exception:
@@ -137,6 +172,7 @@ def ml_churn(req: ChurnRequest):
             req.total_order_count,
             req.avg_order_value,
         )
+        BUSINESS_ERRORS.labels(endpoint=_EP_CHURN).inc()
         return ChurnResponse(
             churn_probability=0.0,
             churn_risk_level="error",
@@ -149,11 +185,12 @@ def ml_churn(req: ChurnRequest):
 @app.post("/ml/churn-predict-formula", response_model=FormulaChurnResponse)
 def ml_churn_formula(req: ChurnRequest):
     """Predict churn probability using the formula-based RFM helper."""
-    probability = formula_churn_probability(
-        req.days_since_last_purchase,
-        req.total_order_count,
-        req.avg_order_value,
-    )
+    with observe_step(_EP_CHURN_FORMULA, "formula_churn"):
+        probability = formula_churn_probability(
+            req.days_since_last_purchase,
+            req.total_order_count,
+            req.avg_order_value,
+        )
 
     logger.info(
         "churn-predict-formula | days=%s | orders=%s | avg_value=%s | churn_prob=%.4f",
@@ -169,10 +206,17 @@ def ml_churn_formula(req: ChurnRequest):
 @app.post("/ml/user-vector", response_model=UserVectorResponse)
 def ml_user_vector(req: UserVectorRequest):
     """Build user behavioral vector."""
-    user_vector = embedder.build_user_vector(
-        req.recent_product_ids,
-        req.weights,
+    missing = sum(
+        1 for pid in req.recent_product_ids if pid not in embedder.product_vectors
     )
+    if missing:
+        VECTOR_LOOKUP_FAILURES.labels(endpoint=_EP_USER_VECTOR).inc(missing)
+
+    with observe_step(_EP_USER_VECTOR, "build_user_vector"):
+        user_vector = embedder.build_user_vector(
+            req.recent_product_ids,
+            req.weights,
+        )
 
     logger.info(
         "user-vector | product_count=%d | vector_dim=%d",
@@ -186,11 +230,13 @@ def ml_user_vector(req: UserVectorRequest):
 @app.post("/ml/search-rerank", response_model=SearchRerankResponse)
 def ml_search_rerank(req: SearchRerankRequest):
     """Re-rank search candidates using user vector."""
-    user_vector = np.array(req.user_vector)
-    candidates = [c.dict() for c in req.candidates]
-    weights = req.weights or {"kw": 0.5, "cosine": 0.3, "popularity": 0.2}
+    with observe_step(_EP_SEARCH_RERANK, "prepare_arrays"):
+        user_vector = np.array(req.user_vector)
+        candidates = [c.dict() for c in req.candidates]
+        weights = req.weights or {"kw": 0.5, "cosine": 0.3, "popularity": 0.2}
 
-    results = rerank_candidates(user_vector, candidates, product_vectors, weights)
+    with observe_step(_EP_SEARCH_RERANK, "rerank_candidates"):
+        results = rerank_candidates(user_vector, candidates, product_vectors, weights)
 
     top_score = results[0]["final_score"] if results else 0.0
     logger.info(

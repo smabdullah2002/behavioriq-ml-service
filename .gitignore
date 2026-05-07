@@ -16,6 +16,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+temp_auto_push.bat
 
 # Local / runtime data (docker-compose volumes)
 loki-data/
@@ -34,3 +35,5 @@ test_results/*.json
 # OS
 .DS_Store
 Thumbs.db
+.gitignore
+branch_structure.json
