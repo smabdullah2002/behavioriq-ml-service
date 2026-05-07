@@ -1,0 +1,4 @@
+venv/*
+loki-data/
+grafana-data/
+.env
