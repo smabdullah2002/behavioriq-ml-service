@@ -92,20 +92,17 @@ def load_or_train_model() -> Tuple[LogisticRegression, Optional[StandardScaler]]
         scaler = None
         if SCALER_PATH.exists():
             scaler = joblib.load(SCALER_PATH)
-        logger.info("Loaded REAL churn model | path=%s", MODEL_PATH)
-        if scaler:
-            logger.info("Loaded churn scaler | path=%s", SCALER_PATH)
-        else:
-            logger.warning("No scaler found — using raw 0-1 normalization")
+        logger.info(f"Loaded REAL churn model from {MODEL_PATH}")
+        logger.info(f"Loaded scaler from {SCALER_PATH}" if scaler else "No scaler found (using raw 0-1 normalization)")
         return model, scaler
     # Fallback: train on synthetic data
-    logger.warning("No saved model found — training FALLBACK model on synthetic data")
+    logger.warning("No saved model found. Training FALLBACK model on synthetic data...")
     X, y = _build_synthetic_training_data()
     model = LogisticRegression(max_iter=300)
     model.fit(X, y)
     MODEL_PATH.parent.mkdir(exist_ok=True)
     joblib.dump(model, MODEL_PATH)
-    logger.warning("FALLBACK model saved to %s. Run 'python -m data.train' to train on real data.", MODEL_PATH)
+    logger.warning("FALLBACK model saved. Run 'python -m data.train' to train on real Kaggle data.")
     return model, None
 
 
