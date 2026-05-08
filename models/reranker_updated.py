@@ -53,16 +53,17 @@ if _ENV_PATH.exists():
 PINECONE_API_KEY: str = os.getenv("PINECONE_API", "")
 HF_API_KEY: str = os.getenv("HF_API_KEY", "")
 OFFLINE_MODE: bool = not bool(PINECONE_API_KEY and HF_API_KEY)
+logger.info("HF_API_KEY loaded: %s", "YES" if HF_API_KEY else "NO — check .env")
+logger.info("OFFLINE_MODE: %s", OFFLINE_MODE)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 INDEX_NAME = "behavioriq-products"
 EMBEDDING_DIM = 384          # sentence-transformers/all-MiniLM-L6-v2
 
 HF_EMBED_URL = (
-    "https://api-inference.huggingface.co/models/"
-    "sentence-transformers/all-MiniLM-L6-v2"
+    "https://router.huggingface.co/hf-inference/models/"
+    "sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction"
 )
-
 # Base scoring weights (config-driven; intent overrides applied at runtime)
 BASE_WEIGHTS: Dict[str, float] = {"vector": 0.45, "intent": 0.30, "pricing": 0.25}
 
