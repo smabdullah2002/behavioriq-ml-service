@@ -38,11 +38,6 @@ class ChurnResponse(BaseModel):
     model_type: Optional[str] = None  # DEBUG: indicates real_trained or fallback_synthetic
 
 
-class FormulaChurnResponse(BaseModel):
-    """Response for formula-based churn endpoint."""
-    churn_probability: float
-
-
 class UserVectorRequest(BaseModel):
     """Request for user vector builder endpoint."""
     recent_product_ids: List[str]
@@ -59,6 +54,16 @@ class CandidateItem(BaseModel):
     product_id: str
     keyword_score: float
     popularity_score: Optional[float] = 0.5
+    semantic_score: Optional[float] = None
+    price: Optional[float] = None
+    category: Optional[str] = None
+
+
+class SearchIntent(BaseModel):
+    """Optional search intent provided by intent service."""
+    label: str
+    confidence: float
+    slots: Optional[Dict[str, str]] = None
 
 
 class SearchRerankRequest(BaseModel):
@@ -66,16 +71,68 @@ class SearchRerankRequest(BaseModel):
     user_vector: List[float]
     candidates: List[CandidateItem]
     weights: Optional[Dict[str, float]] = None
+    search_intent: Optional[SearchIntent] = None
 
 
 class SearchRerankResult(BaseModel):
     """Result item in re-ranked search results."""
     product_id: str
     final_score: float
+    vector_score: Optional[float] = None
+    cosine_score: Optional[float] = None
+    keyword_score: Optional[float] = None
+    intent_score: Optional[float] = None
+    pricing_score: Optional[float] = None
+    intent_label: Optional[str] = None
+    intent_confidence: Optional[float] = None
 
 
 class SearchRerankResponse(BaseModel):
     """Response for search re-ranking endpoint."""
     results: List[SearchRerankResult]
+
+
+# ── BehaviorIQ full-pipeline search (/ml/search) ─────────────────────────────
+
+class BIQSearchRequest(BaseModel):
+    """Request for the full BehaviorIQ search pipeline."""
+    query: str
+    churn_score: float = 0.5
+    recent_product_ids: Optional[List[str]] = None
+    top_k: int = 20
+    weights: Optional[Dict[str, float]] = None
+
+
+class BIQIntentInfo(BaseModel):
+    label: str
+    confidence: float
+    slots: Dict
+
+
+class BIQProductResult(BaseModel):
+    rank: int
+    product_id: str
+    name: str
+    category: str
+    brand: str
+    price: float
+    discount: float
+    rating: float
+    final_score: float
+    vector_score: float
+    intent_score: float
+    pricing_score: float
+    intent_label: str
+    intent_confidence: float
+    rank_explanation: str
+
+
+class BIQSearchResponse(BaseModel):
+    query: str
+    intent: BIQIntentInfo
+    results: List[BIQProductResult]
+    search_backend: str
+    total_candidates: int
+    pipeline_ms: float
 
 

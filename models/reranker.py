@@ -1,88 +1,119 @@
-"""Search re-ranker using user vectors and keyword scores."""
+"""
+Backward-compatibility shim.
+Re-exports everything from reranker_updated and provides the original
+function-based API (rerank_candidates, cosine_similarity) used by main.py.
+"""
+from __future__ import annotations
+
+from typing import Dict, List, Optional
 
 import numpy as np
 from numpy.linalg import norm
-from typing import List, Dict
 
-from logger import get_logger
-from metrics import VECTOR_LOOKUP_FAILURES
+# Re-export all classes/constants from the updated module
+from .reranker_updated import *  # noqa: F401, F403
 
-logger = get_logger(__name__)
+try:
+    from logger import get_logger
+    from metrics import VECTOR_LOOKUP_FAILURES
+    _logger = get_logger(__name__)
+    _METRICS = True
+except ImportError:
+    import logging
+    _logger = logging.getLogger(__name__)
+    _METRICS = False
 
 _RERANK_ENDPOINT = "/ml/search-rerank"
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
-    """Compute cosine similarity between two vectors.
-    Handles dimension mismatches by padding with zeros."""
-    # Ensure both vectors have the same dimension
+    """Cosine similarity with zero-padding for mismatched dimensions."""
     max_dim = max(len(a), len(b))
-    a_padded = np.zeros(max_dim)
-    b_padded = np.zeros(max_dim)
-    a_padded[:len(a)] = a
-    b_padded[:len(b)] = b
-    
-    norm_a = norm(a_padded)
-    norm_b = norm(b_padded)
-    
-    if norm_a == 0 or norm_b == 0:
+    a_p, b_p = np.zeros(max_dim), np.zeros(max_dim)
+    a_p[: len(a)] = a
+    b_p[: len(b)] = b
+    na, nb = norm(a_p), norm(b_p)
+    if na == 0 or nb == 0:
         return 0.0
-    return float(np.dot(a_padded, b_padded) / (norm_a * norm_b))
+    return float(np.dot(a_p, b_p) / (na * nb))
 
 
-def rerank_candidates(user_vector: np.ndarray,
-                      candidates: List[Dict],
-                      product_vectors: Dict,
-                      weights: Dict = None) -> List[Dict]:
+def rerank_candidates(
+    user_vector: np.ndarray,
+    candidates: List[Dict],
+    product_vectors: Dict,
+    weights: Optional[Dict] = None,
+    search_intent: Optional[Dict] = None,
+) -> List[Dict]:
     """
-    Re-rank search candidates using user vector and blended scoring.
-    
-    Args:
-        user_vector: user behavioral embedding
-        candidates: list of {"product_id": str, "keyword_score": float}
-        product_vectors: dict mapping product_id to vector
-        weights: blend weights {"kw": 0.5, "cosine": 0.3, "popularity": 0.2}
-    
-    Returns:
-        list of {"product_id": str, "final_score": float} sorted by score
+    Original function-based reranker used by /ml/search-rerank.
+    Blends vector similarity, intent, and pricing signals.
     """
     if weights is None:
-        weights = {"kw": 0.5, "cosine": 0.3, "popularity": 0.2}
-    
-    # Determine vector dimension from product vectors
-    if product_vectors:
-        vec_dim = len(next(iter(product_vectors.values())))
-    else:
-        vec_dim = len(user_vector)
-    
+        weights = {"vector": 0.45, "intent": 0.30, "pricing": 0.25}
+
+    vec_dim = len(next(iter(product_vectors.values()))) if product_vectors else len(user_vector)
+
+    prices = [c.get("price") for c in candidates if c.get("price") is not None]
+    min_price = min(prices) if prices else None
+    max_price = max(prices) if prices else None
+
+    intent_label = intent_confidence = None
+    if search_intent:
+        intent_label = search_intent.get("label")
+        intent_confidence = float(search_intent.get("confidence", 0.0))
+
     results = []
-    
     for candidate in candidates:
         product_id = candidate["product_id"]
-        keyword_score = candidate.get("keyword_score", 0.5)
-        popularity_score = candidate.get("popularity_score", 0.5)
+        keyword_score = float(candidate.get("keyword_score") or 0.0)
+        semantic_score = candidate.get("semantic_score")
+        price = candidate.get("price")
 
-        if product_id not in product_vectors:
+        if _METRICS and product_id not in product_vectors:
             VECTOR_LOOKUP_FAILURES.labels(endpoint=_RERANK_ENDPOINT).inc()
 
-        # Get product vector - use correct dimension for fallback
         product_vec = product_vectors.get(product_id, np.zeros(vec_dim))
-        
-        # Compute cosine similarity
         cosine_score = cosine_similarity(user_vector, product_vec)
-        
-        # Blend scores
+
+        sparse_score = keyword_score
+        vector_score = 0.7 * cosine_score + 0.3 * sparse_score
+
+        if price is None or min_price is None or max_price is None or max_price == min_price:
+            pricing_score = 0.5
+        else:
+            norm_price = (price - min_price) / (max_price - min_price)
+            if intent_label == "price_sensitive":
+                pricing_score = 1.0 - norm_price
+            elif intent_label == "premium":
+                pricing_score = norm_price
+            else:
+                pricing_score = 0.5
+
+        if intent_label in ("price_sensitive", "premium"):
+            intent_alignment = pricing_score
+        else:
+            intent_alignment = float(semantic_score) if semantic_score is not None else sparse_score
+
+        intent_score = (intent_confidence or 0.0) * intent_alignment
+
         final_score = (
-            weights.get("kw", 0.5) * keyword_score +
-            weights.get("cosine", 0.3) * cosine_score +
-            weights.get("popularity", 0.2) * popularity_score
+            weights.get("vector", 0.45) * vector_score
+            + weights.get("intent", 0.30) * intent_score
+            + weights.get("pricing", 0.25) * pricing_score
         )
-        
+
         results.append({
-            "product_id": product_id,
-            "final_score": float(final_score)
+            "product_id":        product_id,
+            "final_score":       float(final_score),
+            "vector_score":      float(vector_score),
+            "cosine_score":      float(cosine_score),
+            "keyword_score":     float(sparse_score),
+            "intent_score":      float(intent_score),
+            "pricing_score":     float(pricing_score),
+            "intent_label":      intent_label,
+            "intent_confidence": float(intent_confidence or 0.0),
         })
-    
-    # Sort by final_score descending
+
     results.sort(key=lambda x: x["final_score"], reverse=True)
     return results

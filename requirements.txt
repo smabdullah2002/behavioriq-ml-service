@@ -11,3 +11,5 @@ scipy
 prometheus_client
 psutil
 nvidia-ml-py
+pinecone
+python-dotenv

@@ -25,21 +25,27 @@ logger = get_logger(__name__)
 
 _EP_INTENT = "/ml/intent-score"
 _EP_CHURN = "/ml/churn-predict"
-_EP_CHURN_FORMULA = "/ml/churn-predict-formula"
 _EP_USER_VECTOR = "/ml/user-vector"
 _EP_SEARCH_RERANK = "/ml/search-rerank"
 
 # ── Domain imports ────────────────────────────────────────────────────────────
 from models.intent import intent_score
-from models.churn import churn_probability as formula_churn_probability
 from models.churn_model import load_or_train_model, predict_churn
 from models.embedder import ProductEmbedder
 from models.reranker import rerank_candidates, cosine_similarity
+from models.reranker_updated import (
+    CloudEmbedder, SparseEncoder, PineconeManager,
+    IntentAnalyzer, BehaviorIQReranker,
+    PINECONE_API_KEY, HF_API_KEY, OFFLINE_MODE,
+    INDEX_NAME, EMBEDDING_DIM, TOP_CANDIDATES,
+    _load_products,
+)
 from schemas.requests import (
     IntentRequest, IntentResponse,
-    ChurnRequest, ChurnResponse, FormulaChurnResponse,
+    ChurnRequest, ChurnResponse,
     UserVectorRequest, UserVectorResponse,
-    SearchRerankRequest, SearchRerankResponse, SearchRerankResult
+    SearchRerankRequest, SearchRerankResponse, SearchRerankResult,
+    BIQSearchRequest, BIQSearchResponse, BIQProductResult, BIQIntentInfo,
 )
 from seeds.generator import initialize_seed_data
 from models.preprocessor import normalize_intent_features
@@ -52,6 +58,13 @@ embedder = ProductEmbedder()
 product_vectors = {}
 churn_model = None
 churn_scaler = None
+
+# BehaviorIQ full-pipeline singletons
+_biq_embedder:     CloudEmbedder   | None = None
+_biq_sparse_enc:   SparseEncoder   | None = None
+_biq_pinecone_mgr: PineconeManager | None = None
+_biq_intent        = IntentAnalyzer()
+_biq_reranker      = BehaviorIQReranker()
 
 
 # ── Middleware: per-request latency logging + Prometheus ────────────────────
@@ -97,9 +110,37 @@ def startup_event():
     scaler_status = "with scaler" if churn_scaler else "no scaler (fallback)"
     logger.info("Churn model ready (%s)", scaler_status)
 
+    # ── BehaviorIQ full-pipeline init ─────────────────────────────────────────
+    global _biq_embedder, _biq_sparse_enc, _biq_pinecone_mgr
+
+    biq_products = _load_products()
+    biq_corpus = [
+        f"{p['name']} {p.get('desc', '')} {p.get('category', '')} {p.get('brand', '')}"
+        for p in biq_products
+    ]
+
+    _biq_sparse_enc = SparseEncoder()
+    _biq_sparse_enc.fit(biq_corpus)
+
+    _biq_embedder = CloudEmbedder(api_key=HF_API_KEY, offline=OFFLINE_MODE)
+    _biq_embedder.fit_fallback(biq_corpus)
+
+    _biq_pinecone_mgr = PineconeManager(
+        api_key=PINECONE_API_KEY,
+        index_name=INDEX_NAME,
+        dim=EMBEDDING_DIM,
+        offline=OFFLINE_MODE,
+    )
+
+    dense_vecs  = _biq_embedder.embed(biq_corpus)
+    sparse_vecs = [_biq_sparse_enc.encode(t) for t in biq_corpus]
+    _biq_pinecone_mgr.upsert_products(biq_products, dense_vecs, sparse_vecs)
+
+    biq_backend = "pinecone_hybrid" if not _biq_pinecone_mgr.offline else "offline_tfidf"
     logger.info(
-        "ML Service ready | products=%d | embedder=TF-IDF | endpoints=intent-score,churn-predict,user-vector,search-rerank",
+        "ML Service ready | products=%d | embedder=TF-IDF | biq_backend=%s | endpoints=intent-score,churn-predict,user-vector,search-rerank,search",
         len(product_vectors),
+        biq_backend,
     )
 
 
@@ -182,27 +223,6 @@ def ml_churn(req: ChurnRequest):
         )
 
 
-@app.post("/ml/churn-predict-formula", response_model=FormulaChurnResponse)
-def ml_churn_formula(req: ChurnRequest):
-    """Predict churn probability using the formula-based RFM helper."""
-    with observe_step(_EP_CHURN_FORMULA, "formula_churn"):
-        probability = formula_churn_probability(
-            req.days_since_last_purchase,
-            req.total_order_count,
-            req.avg_order_value,
-        )
-
-    logger.info(
-        "churn-predict-formula | days=%s | orders=%s | avg_value=%s | churn_prob=%.4f",
-        req.days_since_last_purchase,
-        req.total_order_count,
-        req.avg_order_value,
-        probability,
-    )
-
-    return FormulaChurnResponse(churn_probability=probability)
-
-
 @app.post("/ml/user-vector", response_model=UserVectorResponse)
 def ml_user_vector(req: UserVectorRequest):
     """Build user behavioral vector."""
@@ -233,10 +253,11 @@ def ml_search_rerank(req: SearchRerankRequest):
     with observe_step(_EP_SEARCH_RERANK, "prepare_arrays"):
         user_vector = np.array(req.user_vector)
         candidates = [c.dict() for c in req.candidates]
-        weights = req.weights or {"kw": 0.5, "cosine": 0.3, "popularity": 0.2}
+        weights = req.weights or {"vector": 0.45, "intent": 0.30, "pricing": 0.25}
+        search_intent = req.search_intent.dict() if req.search_intent else None
 
     with observe_step(_EP_SEARCH_RERANK, "rerank_candidates"):
-        results = rerank_candidates(user_vector, candidates, product_vectors, weights)
+        results = rerank_candidates(user_vector, candidates, product_vectors, weights, search_intent)
 
     top_score = results[0]["final_score"] if results else 0.0
     logger.info(
@@ -249,6 +270,94 @@ def ml_search_rerank(req: SearchRerankRequest):
     return SearchRerankResponse(
         results=[SearchRerankResult(**r) for r in results]
     )
+
+
+_EP_SEARCH = "/ml/search"
+
+
+@app.post("/ml/search", response_model=BIQSearchResponse)
+def ml_search(req: BIQSearchRequest):
+    """Full BehaviorIQ pipeline: semantic+keyword search → intent → rerank."""
+    from fastapi import HTTPException
+    if _biq_embedder is None or _biq_sparse_enc is None or _biq_pinecone_mgr is None:
+        raise HTTPException(503, "BIQ pipeline not initialised yet")
+
+    t0 = time.perf_counter()
+
+    with observe_step(_EP_SEARCH, "embed_query"):
+        query_dense  = _biq_embedder.embed_one(req.query)
+        query_sparse = _biq_sparse_enc.encode(req.query)
+
+    with observe_step(_EP_SEARCH, "intent_analysis"):
+        intent = _biq_intent.analyze(req.query)
+
+    with observe_step(_EP_SEARCH, "retrieve_candidates"):
+        candidates = _biq_pinecone_mgr.query(query_dense, query_sparse, top_k=TOP_CANDIDATES)
+
+    # Narrow by category slot
+    cat_slot = intent.get("slots", {}).get("category")
+    if cat_slot:
+        filtered = [c for c in candidates if c["metadata"].get("category") == cat_slot]
+        if filtered:
+            candidates = filtered
+
+    # Narrow by max_price slot
+    max_price_slot = intent.get("slots", {}).get("max_price")
+    if max_price_slot:
+        try:
+            ceiling  = float(max_price_slot)
+            filtered = [c for c in candidates if c["metadata"].get("price", 9999) <= ceiling]
+            if filtered:
+                candidates = filtered
+        except ValueError:
+            pass
+
+    with observe_step(_EP_SEARCH, "rerank"):
+        ranked = _biq_reranker.rerank(
+            candidates,
+            intent,
+            churn_score=req.churn_score,
+            weights=req.weights,
+        )
+    ranked = ranked[: req.top_k]
+
+    elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+    backend    = "pinecone_hybrid" if not _biq_pinecone_mgr.offline else "offline_tfidf_fallback"
+
+    logger.info(
+        "search | query=%r | intent=%s | candidates=%d | results=%d | backend=%s | %.1fms",
+        req.query,
+        intent.get("label"),
+        len(candidates),
+        len(ranked),
+        backend,
+        elapsed_ms,
+    )
+
+    return BIQSearchResponse(
+        query=req.query,
+        intent=BIQIntentInfo(**intent),
+        results=[BIQProductResult(rank=i + 1, **r) for i, r in enumerate(ranked)],
+        search_backend=backend,
+        total_candidates=len(candidates),
+        pipeline_ms=elapsed_ms,
+    )
+
+
+@app.get("/ml/search/index-status")
+def ml_search_index_status():
+    """Status of the Pinecone hybrid index."""
+    if _biq_pinecone_mgr and not _biq_pinecone_mgr.offline and _biq_pinecone_mgr._index:
+        try:
+            stats = _biq_pinecone_mgr._index.describe_index_stats()
+            return {"status": "connected", "index": INDEX_NAME, "stats": stats}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+    return {
+        "status":           "offline",
+        "index":            INDEX_NAME,
+        "indexed_products": len(_biq_pinecone_mgr._store) if _biq_pinecone_mgr else 0,
+    }
 
 
 @app.get("/health")

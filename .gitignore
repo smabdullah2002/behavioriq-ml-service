@@ -21,12 +21,6 @@ __pycache__/
 loki-data/
 grafana-data/
 
-# ML artifacts (regenerate via data/train.py, seeds/generator.py, or service startup)
-saved_models/*.pkl
-
-# Large raw datasets (download into data/kaggle_raw/ when training; see data/train.py)
-data/kaggle_raw/*.csv
-data/kaggle_raw/*.zip
 
 # Generated test output
 test_results/*.json
