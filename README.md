@@ -1,170 +1,169 @@
 # BehaviorIQ ML Service
 
-A lightweight, hackathon-friendly FastAPI service for behavioral commerce ML.
+BehaviorIQ ML Service is a lightweight FastAPI microservice that provides behavioral commerce intelligence for e-commerce applications. It exposes fast endpoints for session intent scoring, RFM churn prediction, user behavioral vector construction, and a full search pipeline (semantic retrieval → intent analysis → behavior-aware reranking).
 
-## Quick Start
+Badges
+---
+<!-- Replace placeholders with your CI status / coverage badges if available -->
+![python](https://img.shields.io/badge/python-3.10%2B-blue)
+![status](https://img.shields.io/badge/status-experimental-yellow)
 
-### Install dependencies
+Why this project
+---
+- Fast, reproducible ML endpoints for demoing behavioral personalization
+- Full search pipeline with Pinecone hybrid retrieval (dense + sparse) and intent-aware reranking
+- Deterministic intent formula + trained churn model for explainability
+
+Contents of this README
+---
+- What the project does
+- Quick start (install, run)
+- API summary and examples
+- Deployment & environment notes
+- Links to integration docs and design plans
+- How to contribute and get help
+
+Quick start
+---
+
+Prerequisites
+- Python 3.10+
+- (Optional) Docker & Docker Compose for containerized runs
+
+Install dependencies
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-### Run the service
+Run locally
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
-### Test an endpoint
+Run with Docker Compose
+
+```bash
+docker-compose up --build
+```
+
+Environment variables
+- `PINECONE_API` — Pinecone API key (optional; service falls back to TF-IDF offline)
+- `HF_API_KEY` — Hugging Face API key for SentenceTransformers embeddings (optional)
+
+Project layout (important files)
+---
+
+```
+ml-service/
+  main.py                   # FastAPI app and endpoints
+  models/                   # ML logic: intent, churn, embedder, reranker_updated
+  schemas/                  # Pydantic request/response models
+  plan_markdowns/           # Architecture and integration docs (contracts)
+  saved_models/             # Pickled artifacts (embedder, churn model)
+  requirements.txt
+  Dockerfile
+  docker-compose.yml
+```
+
+API summary (short)
+---
+
+Use [plan_markdowns/behavioriq-ml-integration.md](plan_markdowns/behavioriq-ml-integration.md) for full request/response contracts.
+
+- `POST /ml/intent-score` — session intent score (0–100)
+- `POST /ml/churn-predict` — churn probability (0–1)
+- `POST /ml/user-vector` — build a per-user behavioral vector
+- `POST /ml/search` — BehaviorIQ full search pipeline (semantic retrieval → intent → rerank)
+- `GET /ml/search/index-status` — Pinecone index status (if configured)
+- `GET /metrics` — Prometheus metrics
+- `GET /health` — health check
+
+Example: intent score
 
 ```bash
 curl -X POST http://localhost:8001/ml/intent-score \
   -H 'Content-Type: application/json' \
   -d '{
-    "product_visit_count": 5,
-    "time_on_product_page": 120,
-    "cart_add_events": 1,
-    "scroll_depth": 0.2,
-    "avg_spend_score": 0.7,
-    "session_recency": 0.6
+    "product_visit_count": 0.7,
+    "time_on_product_page": 0.6,
+    "cart_add_events": 0.2,
+    "scroll_depth": 0.5,
+    "avg_spend_score": 0.5,
+    "session_recency": 0.9
   }'
 ```
 
-## Project Structure
+Example: churn predict
 
-```
-ml-service/
-  main.py                   # FastAPI app, all routes
-  models/
-    __init__.py
-    intent.py               # Intent score logic
-    churn.py                # RFM churn model
-    embedder.py             # TF-IDF product embedder
-    reranker.py             # Search re-ranking
-  schemas/
-    __init__.py
-    requests.py             # All Pydantic models
-  data/
-    __init__.py
-    synthetic_churn.py      # Synthetic data generator
-  saved_models/
-    __init__.py
-    churn_model.pkl
-    embedder.pkl
-  requirements.txt
-  README.md
+```bash
+curl -X POST http://localhost:8001/ml/churn-predict \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "days_since_last_purchase": 42,
+    "total_order_count": 3,
+    "avg_order_value": 78.5
+  }'
 ```
 
-## API Endpoints
+Example: full search (rerank)
 
-### POST /ml/intent-score
-Compute user intent score (0-100) from session features.
-
-**Request:**
-```json
-{
-  "product_visit_count": 5,
-  "time_on_product_page": 120,
-  "cart_add_events": 1,
-  "scroll_depth": 0.25,
-  "avg_spend_score": 0.7,
-  "session_recency": 0.8
-}
+```bash
+curl -X POST http://localhost:8001/ml/search \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "cheap running shoes",
+    "churn_score": 0.2,
+    "top_k": 20
+  }'
 ```
 
-**Response:**
-```json
-{
-  "intent_score": 62.3
-}
-```
+Development notes
+---
 
-### POST /ml/churn-predict
-Predict churn probability (0-1) using RFM features.
+- The code includes a hybrid search pipeline (`models/reranker_updated.py`) which uses a `CloudEmbedder` (HF embeddings with TF-IDF fallback), a `SparseEncoder` for sparse signals, and `PineconeManager` for hybrid retrieval or an in-memory fallback.
+- At startup the service seeds product vectors from `data/products.json` (see `seeds/`)
+- The service exposes Prometheus metrics and basic tracing via `metrics.py`
 
-**Request:**
-```json
-{
-  "days_since_last_purchase": 42,
-  "total_order_count": 3,
-  "avg_order_value": 78.5
-}
-```
+Documentation & integration
+---
 
-**Response:**
-```json
-{
-  "churn_probability": 0.72
-}
-```
+- Integration contract (schemas + examples): [plan_markdowns/behavioriq-ml-integration.md](plan_markdowns/behavioriq-ml-integration.md)
+- Architecture & hackathon plan: [plan_markdowns/cloudcamp-hackathon.md](plan_markdowns/cloudcamp-hackathon.md)
+- Project summary: [plan_markdowns/project-summary.md](plan_markdowns/project-summary.md)
 
-### POST /ml/user-vector
-Build user behavioral vector from recent product views.
+Contributing & support
+---
 
-**Request:**
-```json
-{
-  "recent_product_ids": ["p1", "p5", "p8"],
-  "weights": [1.0, 0.5, 0.8]
-}
-```
+If you want to contribute:
 
-**Response:**
-```json
-{
-  "user_vector": [0.04, 0.0, 0.3, ...]
-}
-```
+- Open an issue describing the change or feature
+- Create a focused PR against the `main` branch; keep changes small and testable
 
-### POST /ml/search-rerank
-Re-rank search candidates using user vector.
+For questions and help, open an issue in the repository.
 
-**Request:**
-```json
-{
-  "user_vector": [0.04, 0.0, 0.3, ...],
-  "candidates": [
-    { "product_id": "p1", "keyword_score": 0.76, "popularity_score": 0.5 },
-    { "product_id": "p2", "keyword_score": 0.64, "popularity_score": 0.3 }
-  ],
-  "weights": { "kw": 0.5, "cosine": 0.3, "popularity": 0.2 }
-}
-```
+Maintainers
+---
 
-**Response:**
-```json
-{
-  "results": [
-    { "product_id": "p1", "final_score": 0.82 },
-    { "product_id": "p2", "final_score": 0.76 }
-  ]
-}
-```
+- Repository owner: `smabdullah2002` (GitHub)
 
-### GET /health
-Health check endpoint.
+License
+---
 
-**Response:**
-```json
-{
-  "status": "ok"
-}
-```
+This repository does not include a license file. Add `LICENSE` to the repo to make usage terms explicit.
 
-## Implementation Notes
+Acknowledgements
+---
 
-- Models are kept in memory and loaded at startup.
-- Synthetic data is generated on first run if saved models don't exist.
-- All scoring functions are deterministic for reproducible demos.
-- Schemas and requests are defined in Pydantic for automatic validation.
+This project was built as part of a hackathon demo and integrates open-source libraries such as scikit-learn, FastAPI, and optional cloud services (Hugging Face, Pinecone).
 
-## Demo Tips
+---
 
-- Seed with ~100 synthetic products for fast demo iteration.
-- Use deterministic coefficients for intent/churn so behavior is explainable.
-- Keep LLM calls async and non-blocking in production.
-- Add rate-limiting and API key auth for deployment.
-"# behavioriq-ml-service" 
+If you'd like, I can also:
+- add a minimal `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`
+- add CI badges and a sample GitHub Actions workflow
+- generate OpenAPI client snippets for frontend teams
+
 
 
