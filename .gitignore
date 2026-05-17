@@ -13,6 +13,7 @@ __pycache__/
 *.so
 .Python
 *.egg-info/
+temp_auto_push.bat
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -28,3 +29,5 @@ test_results/*.json
 # OS
 .DS_Store
 Thumbs.db
+.gitignore
+branch_structure.json

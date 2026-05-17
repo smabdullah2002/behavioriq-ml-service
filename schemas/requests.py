@@ -38,6 +38,22 @@ class ChurnResponse(BaseModel):
     model_type: Optional[str] = None  # DEBUG: indicates real_trained or fallback_synthetic
 
 
+class ProductEmbedRequest(BaseModel):
+    """Request to embed (or re-embed) a single catalog product."""
+    product_id: str
+    name: str
+    description: Optional[str] = None
+    category: Optional[str] = None
+    brand: Optional[str] = None
+
+
+class ProductEmbedResponse(BaseModel):
+    """TF-IDF embedding for API persistence and user-vector lookup."""
+    product_id: str
+    product_vector: List[float]
+    vector_dim: int
+
+
 class UserVectorRequest(BaseModel):
     """Request for user vector builder endpoint."""
     recent_product_ids: List[str]

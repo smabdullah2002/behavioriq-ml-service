@@ -26,6 +26,7 @@ logger = get_logger(__name__)
 _EP_INTENT = "/ml/intent-score"
 _EP_CHURN = "/ml/churn-predict"
 _EP_USER_VECTOR = "/ml/user-vector"
+_EP_PRODUCT_EMBED = "/ml/product-embed"
 _EP_SEARCH_RERANK = "/ml/search-rerank"
 
 # ── Domain imports ────────────────────────────────────────────────────────────
@@ -52,6 +53,8 @@ from schemas.requests import (
     IntentResponse,
     ChurnRequest,
     ChurnResponse,
+    ProductEmbedRequest,
+    ProductEmbedResponse,
     UserVectorRequest,
     UserVectorResponse,
     SearchRerankRequest,
@@ -247,6 +250,61 @@ def ml_churn(req: ChurnRequest):
             recommended_action="none",
             model_type=None,
         )
+
+
+@app.post("/ml/product-embed", response_model=ProductEmbedResponse)
+def ml_product_embed(req: ProductEmbedRequest):
+    """Embed a single product and register it for user-vector / rerank lookup."""
+    from fastapi import HTTPException
+
+    if embedder.vectorizer is None:
+        raise HTTPException(503, "Embedder not initialised yet")
+
+    product = {
+        "product_id": req.product_id,
+        "name": req.name,
+        "description": req.description or "",
+        "category": req.category or "",
+        "brand": req.brand or "",
+    }
+    text = embedder.product_text(product)
+
+    with observe_step(_EP_PRODUCT_EMBED, "embed_product"):
+        vec = embedder.embed_product(product)
+
+    global product_vectors
+    product_vectors = embedder.product_vectors
+
+    # Keep BIQ hybrid index in sync when the full pipeline is loaded
+    if _biq_embedder is not None and _biq_sparse_enc is not None and _biq_pinecone_mgr is not None:
+        with observe_step(_EP_PRODUCT_EMBED, "biq_index_upsert"):
+            dense = _biq_embedder.embed_one(text)
+            sparse = _biq_sparse_enc.encode(text)
+            biq_row = {
+                "id": req.product_id,
+                "name": req.name,
+                "desc": req.description or "",
+                "category": req.category or "",
+                "brand": req.brand or "",
+                "price": 0.0,
+                "rating": 3.5,
+                "popularity": 0.5,
+                "stock": True,
+                "discount": 0.0,
+            }
+            _biq_pinecone_mgr.upsert_products([biq_row], [dense], [sparse])
+
+    logger.info(
+        "product-embed | id=%s | dim=%d",
+        req.product_id,
+        len(vec),
+    )
+
+    return ProductEmbedResponse(
+        product_id=req.product_id,
+        product_vector=vec.tolist(),
+        vector_dim=len(vec),
+    )
 
 
 @app.post("/ml/user-vector", response_model=UserVectorResponse)
