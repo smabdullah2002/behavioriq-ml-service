@@ -75,6 +75,8 @@ Use [plan_markdowns/behavioriq-ml-integration.md](plan_markdowns/behavioriq-ml-i
 - `POST /ml/intent-score` — session intent score (0–100)
 - `POST /ml/churn-predict` — churn probability (0–1)
 - `POST /ml/user-vector` — build a per-user behavioral vector
+- `POST /ml/product-embed` — embed a single catalog product (TF-IDF); used by API on create/update
+- `POST /ml/search-rerank` — rerank keyword candidates with user + product vectors
 - `POST /ml/search` — BehaviorIQ full search pipeline (semantic retrieval → intent → rerank)
 - `GET /ml/search/index-status` — Pinecone index status (if configured)
 - `GET /metrics` — Prometheus metrics

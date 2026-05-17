@@ -19,6 +19,15 @@ class ProductEmbedder:
         self.product_vectors = {}  # dict: product_id -> vector
         self.corpus = []  # list of product texts
     
+    @staticmethod
+    def product_text(product: Dict) -> str:
+        """Build embeddable text from a product record."""
+        desc = product.get("desc") or product.get("description") or ""
+        return (
+            f"{product.get('name', '')} {desc} "
+            f"{product.get('category', '')} {product.get('brand', '')}"
+        ).strip()
+
     def fit(self, products: List[Dict]) -> None:
         """
         Fit the vectorizer on product corpus.
@@ -26,10 +35,7 @@ class ProductEmbedder:
         Args:
             products: list of dicts with 'id', 'name', 'desc', 'category'
         """
-        self.corpus = [
-            f"{p.get('name', '')} {p.get('desc', '')} {p.get('category', '')}"
-            for p in products
-        ]
+        self.corpus = [self.product_text(p) for p in products]
         self.vectorizer = TfidfVectorizer(max_features=100)
         vectors = self.vectorizer.fit_transform(self.corpus)
         
@@ -47,6 +53,32 @@ class ProductEmbedder:
         if self.product_vectors:
             return len(next(iter(self.product_vectors.values())))
         return 100
+
+    def embed_product(self, product: Dict) -> np.ndarray:
+        """
+        Embed a single product and register it in the in-memory index.
+
+        Uses the fitted TF-IDF vectorizer (must call fit() first).
+        """
+        if self.vectorizer is None:
+            raise RuntimeError("Embedder is not fitted — call fit() at startup first")
+
+        product_id = product.get("product_id") or product.get("id")
+        if not product_id:
+            raise ValueError("product_id or id is required")
+
+        text = self.product_text(product)
+        vec = self.vectorizer.transform([text]).toarray().flatten()
+        self.product_vectors[str(product_id)] = vec
+        if text not in self.corpus:
+            self.corpus.append(text)
+
+        logger.info(
+            "Embedded product | id=%s | dim=%d",
+            product_id,
+            len(vec),
+        )
+        return vec
 
     def get_product_vector(self, product_id: str) -> np.ndarray:
         """Get pre-computed vector for a product."""
