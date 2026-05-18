@@ -73,7 +73,7 @@ def initialize_seed_data(embedder, products_count=100):
     print("ML Service Ready!")
     print(f"   • Products: {len(products)}")
     print(f"   • Embedder: TF-IDF (100 features)")
-    print(f"   • Endpoints: intent-score, churn-predict, user-vector, search-rerank")
+    print(f"   • Endpoints: intent-score, churn-predict, user-vector, product-embed, search-rerank")
     print("="*60 + "\n")
     
     return product_vectors
