@@ -571,6 +571,7 @@ class BehaviorIQReranker:
 
             price      = float(meta.get("price", 0))
             discount   = float(meta.get("discount", 0))
+            discount   = self._effective_discount(discount, churn_score, label)
             rating     = float(meta.get("rating", 3.5))
             popularity = float(meta.get("popularity", 0.5))
 
@@ -675,6 +676,15 @@ class BehaviorIQReranker:
             parts.append("relevant match")
         parts.append(f"score {score:.3f}")
         return ", ".join(parts)
+
+    @staticmethod
+    def _effective_discount(discount: float, churn_score: float, intent_label: str) -> float:
+        if discount > 0:
+            return discount
+        if intent_label != "price_sensitive":
+            return 0.0
+        dynamic = min(0.15, max(0.0, 0.15 * churn_score))
+        return math.floor(dynamic * 100) / 100
 
 
 # ═════════════════════════════════════════════════════════════════════════════
