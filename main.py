@@ -1,5 +1,6 @@
 """FastAPI application for BehaviorIQ ML service."""
 
+import os
 import time
 import logging
 
@@ -46,8 +47,8 @@ from models.reranker_updated import (
     INDEX_NAME,
     EMBEDDING_DIM,
     TOP_CANDIDATES,
-    _load_products,
 )
+from catalog import load_product_catalog
 from schemas.requests import (
     IntentRequest,
     IntentResponse,
@@ -121,7 +122,8 @@ def startup_event():
 
     logger.info("=== BehaviorIQ ML Service starting up ===")
 
-    product_vectors = initialize_seed_data(embedder)
+    catalog = load_product_catalog()
+    product_vectors = initialize_seed_data(embedder, catalog)
     logger.info("Products loaded: %d", len(product_vectors))
 
     churn_model, churn_scaler = load_or_train_model()
@@ -131,7 +133,7 @@ def startup_event():
     # ── BehaviorIQ full-pipeline init ─────────────────────────────────────────
     global _biq_embedder, _biq_sparse_enc, _biq_pinecone_mgr
 
-    biq_products = _load_products()
+    biq_products = catalog
     biq_corpus = [
         f"{p['name']} {p.get('desc', '')} {p.get('category', '')} {p.get('brand', '')}"
         for p in biq_products
@@ -454,8 +456,9 @@ def ml_search_index_status():
 @app.get("/health")
 def health_check():
     """Health check endpoint."""
-    products_file = Path("data/products.json")
+    products_file = Path(os.environ.get("PRODUCT_CATALOG_PATH", "data/products.json"))
     embedder_file = Path("saved_models/embedder.pkl")
+    pinecone_status = biq_index_status()
 
     status = {
         "status": "ok",
@@ -463,6 +466,14 @@ def health_check():
         "products_loaded": len(product_vectors),
         "products_file_exists": products_file.exists(),
         "embedder_cached": embedder_file.exists(),
+        "offline_mode": OFFLINE_MODE,
+        "search_backend": (
+            "pinecone_hybrid"
+            if _biq_pinecone_mgr and not _biq_pinecone_mgr.offline
+            else "offline_tfidf"
+        ),
+        "pinecone": pinecone_status,
+        "hf_api_configured": bool(HF_API_KEY),
     }
 
     logger.debug("health-check | products_loaded=%d", len(product_vectors))

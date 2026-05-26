@@ -1,79 +1,76 @@
-"""Seed data generator for BehaviorIQ ML service."""
+"""Seed data loader for BehaviorIQ ML service."""
 
-import json
 import joblib
 from pathlib import Path
-from data.synthetic_churn import generate_synthetic_products
+
+from catalog import load_product_catalog
 
 
-def initialize_seed_data(embedder, products_count=100):
-    """Generate and load seed data at service startup.
-    
+def initialize_seed_data(embedder, products=None):
+    """Load the shared catalog and fit or restore the TF-IDF embedder.
+
     Args:
         embedder: ProductEmbedder instance
-        products_count: Number of synthetic products to generate
-        
+        products: Optional pre-loaded catalog (defaults to shared products.json)
+
     Returns:
         dict: product_vectors from embedder
     """
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("BehaviorIQ ML Service Startup")
-    print("="*60)
-    
-    # Ensure saved_models directory exists
+    print("=" * 60)
+
     saved_models_dir = Path("saved_models")
     saved_models_dir.mkdir(exist_ok=True)
-    
-    # Step 1: Check/create products seed data
-    products_file = Path("data/products.json")
-    if not products_file.exists():
-        print("\nGenerating seed products...")
-        products = generate_synthetic_products(products_count)
-        products_file.parent.mkdir(exist_ok=True)
-        with open(products_file, 'w') as f:
-            json.dump(products, f, indent=2)
-        print(f"   Generated {len(products)} synthetic products -> data/products.json")
-    else:
-        print(f"\nFound existing products file: data/products.json")
-        with open(products_file, 'r') as f:
-            products = json.load(f)
-        print(f"   Loaded {len(products)} products")
-    
-    # Step 2: Try to load saved embedder, otherwise fit new one
+
+    if products is None:
+        products = load_product_catalog()
+
+    print(f"\nLoaded shared catalog: {len(products)} products")
+
     embedder_path = saved_models_dir / "embedder.pkl"
+    should_fit = True
+
     if embedder_path.exists():
-        print(f"\nLoading saved embedder from saved_models/embedder.pkl...")
+        print("\nLoading saved embedder from saved_models/embedder.pkl...")
         try:
             loaded = joblib.load(embedder_path)
-            # Copy into the passed-in embedder so the caller's reference stays valid
-            embedder.vectorizer = loaded.vectorizer
-            embedder.product_vectors = loaded.product_vectors
-            embedder.corpus = loaded.corpus
-            print(f"   Embedder loaded with {len(embedder.product_vectors)} products")
+            if len(loaded.product_vectors) == len(products):
+                embedder.vectorizer = loaded.vectorizer
+                embedder.product_vectors = loaded.product_vectors
+                embedder.corpus = loaded.corpus
+                should_fit = False
+                print(
+                    f"   Embedder loaded with {len(embedder.product_vectors)} products"
+                )
+            else:
+                print(
+                    "   Catalog size changed — refitting embedder from shared catalog..."
+                )
         except Exception as e:
             print(f"   Error loading embedder: {e}")
-            print(f"   Fitting new embedder from products...")
-            embedder.fit(products)
-            joblib.dump(embedder, embedder_path)
-            print(f"   ✓ Embedder fitted and saved")
-    else:
-        print(f"\nNo saved embedder found. Fitting TF-IDF embedder...")
+            print("   Fitting new embedder from shared catalog...")
+
+    if should_fit:
+        print("\nFitting TF-IDF embedder from shared catalog...")
         embedder.fit(products)
         try:
             joblib.dump(embedder, embedder_path)
-            print(f"   Embedder fitted and saved to saved_models/embedder.pkl")
+            print("   Embedder fitted and saved to saved_models/embedder.pkl")
         except Exception as e:
             print(f"   Could not save embedder: {e}")
-            print(f"   Embedder in memory (will regenerate on next startup)")
-    
-    # Step 3: Update and return product vectors
+            print("   Embedder in memory (will regenerate on next startup)")
+
     product_vectors = embedder.product_vectors
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("ML Service Ready!")
     print(f"   • Products: {len(products)}")
     print(f"   • Embedder: TF-IDF (100 features)")
-    print(f"   • Endpoints: intent-score, churn-predict, user-vector, product-embed, search-rerank")
-    print("="*60 + "\n")
-    
+    print(
+        "   • Endpoints: intent-score, churn-predict, user-vector, "
+        "product-embed, search-rerank"
+    )
+    print("=" * 60 + "\n")
+
     return product_vectors

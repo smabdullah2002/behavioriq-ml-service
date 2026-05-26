@@ -78,16 +78,18 @@ services:
     container_name: behavioriq-ml-service
     ports:
       - "8001:8001"
+    env_file:
+      - .env
     environment:
       - LOKI_URL=http://loki:3100/loki/api/v1/push
-      - APP_ENV=hackathon
+      - PRODUCT_CATALOG_PATH=/app/data/products.json
     networks:
       - observability
     depends_on:
       loki:
         condition: service_healthy
     volumes:
-      - ./data:/app/data
+      - ../data/products.json:/app/data/products.json:ro
       - ./saved_models:/app/saved_models
 
 volumes:
