@@ -50,14 +50,23 @@ if _ENV_PATH.exists():
             _k, _, _v = _line.partition("=")
             os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
 
-PINECONE_API_KEY: str = os.getenv("PINECONE_API", "")
+PINECONE_API_KEY: str = os.getenv("PINECONE_API", "") or os.getenv("PINECONE_API_KEY", "")
 HF_API_KEY: str = os.getenv("HF_API_KEY", "")
 OFFLINE_MODE: bool = not bool(PINECONE_API_KEY and HF_API_KEY)
+INDEX_NAME = os.getenv("PINECONE_INDEX", "behavioriq-products")
+PINECONE_CLOUD = os.getenv("PINECONE_CLOUD", "aws")
+PINECONE_REGION = os.getenv("PINECONE_REGION", "us-east-1")
+logger.info("PINECONE_API loaded: %s", "YES" if PINECONE_API_KEY else "NO — check .env")
 logger.info("HF_API_KEY loaded: %s", "YES" if HF_API_KEY else "NO — check .env")
-logger.info("OFFLINE_MODE: %s", OFFLINE_MODE)
+logger.info(
+    "Remote search target: index=%s cloud=%s region=%s offline=%s",
+    INDEX_NAME,
+    PINECONE_CLOUD,
+    PINECONE_REGION,
+    OFFLINE_MODE,
+)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-INDEX_NAME = "behavioriq-products"
 EMBEDDING_DIM = 384          # sentence-transformers/all-MiniLM-L6-v2
 
 HF_EMBED_URL = (
@@ -320,7 +329,7 @@ class PineconeManager:
                     name=self.index_name,
                     dimension=self.dim,
                     metric="dotproduct",
-                    spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+                    spec=ServerlessSpec(cloud=PINECONE_CLOUD, region=PINECONE_REGION),
                 )
                 # Poll until ready
                 for _ in range(30):
@@ -751,24 +760,12 @@ _reranker        = BehaviorIQReranker()
 
 
 def _load_products() -> List[Dict]:
-    """Load products from products_v2.json, then products.json, then SEED_PRODUCTS fallback."""
-    for fname in ("data/products_v2.json", "data/products.json"):
-        # data/ lives in ml-service/, one level above models/
-        path = Path(__file__).parent.parent / fname
-        if path.exists():
-            products = json.loads(path.read_text())
-            # Ensure required fields exist
-            for p in products:
-                p.setdefault("brand",      "Generic")
-                p.setdefault("rating",     3.5)
-                p.setdefault("popularity", 0.5)
-                p.setdefault("stock",      True)
-                p.setdefault("discount",   0.0)
-            logger.info("Loaded %d products from %s", len(products), fname)
-            return products
+    """Load products from the shared catalog file."""
+    from catalog import load_product_catalog
 
-    logger.warning("No products file found — using embedded seed catalog")
-    return _SEED_PRODUCTS
+    products = load_product_catalog()
+    logger.info("Loaded %d products from shared catalog", len(products))
+    return products
 
 
 @app.on_event("startup")
