@@ -41,6 +41,7 @@ from models.reranker_updated import (
     PineconeManager,
     IntentAnalyzer,
     BehaviorIQReranker,
+    apply_query_first_filter,
     PINECONE_API_KEY,
     HF_API_KEY,
     OFFLINE_MODE,
@@ -363,7 +364,7 @@ _EP_SEARCH = "/ml/search"
 
 @app.post("/ml/search", response_model=BIQSearchResponse)
 def ml_search(req: BIQSearchRequest):
-    """Full BehaviorIQ pipeline: semantic+keyword search → intent → rerank."""
+    """Query-first hybrid search: product-term gate → semantic retrieval → intent rerank."""
     from fastapi import HTTPException
 
     if _biq_embedder is None or _biq_sparse_enc is None or _biq_pinecone_mgr is None:
@@ -371,19 +372,26 @@ def ml_search(req: BIQSearchRequest):
 
     t0 = time.perf_counter()
 
-    with observe_step(_EP_SEARCH, "embed_query"):
-        query_dense = _biq_embedder.embed_one(req.query)
-        query_sparse = _biq_sparse_enc.encode(req.query)
+    product_terms = _biq_intent.extract_product_terms(req.query)
+    product_query = _biq_intent.extract_product_query(req.query)
 
     with observe_step(_EP_SEARCH, "intent_analysis"):
         intent = _biq_intent.analyze(req.query)
+
+    with observe_step(_EP_SEARCH, "embed_query"):
+        query_dense = _biq_embedder.embed_one(req.query)
+        # Sparse/keyword retrieval focuses on product terms, not intent modifiers
+        query_sparse = _biq_sparse_enc.encode(product_query)
 
     with observe_step(_EP_SEARCH, "retrieve_candidates"):
         candidates = _biq_pinecone_mgr.query(
             query_dense, query_sparse, top_k=TOP_CANDIDATES
         )
 
-    # Narrow by category slot
+    with observe_step(_EP_SEARCH, "query_first_filter"):
+        candidates = apply_query_first_filter(candidates, product_terms)
+
+    # Narrow by category slot extracted from product terms
     cat_slot = intent.get("slots", {}).get("category")
     if cat_slot:
         filtered = [c for c in candidates if c["metadata"].get("category") == cat_slot]
@@ -409,6 +417,7 @@ def ml_search(req: BIQSearchRequest):
             intent,
             churn_score=req.churn_score,
             weights=req.weights,
+            product_terms=product_terms,
         )
     ranked = ranked[: req.top_k]
 
@@ -418,8 +427,9 @@ def ml_search(req: BIQSearchRequest):
     )
 
     logger.info(
-        "search | query=%r | intent=%s | candidates=%d | results=%d | backend=%s | %.1fms",
+        "search | query=%r | product_terms=%s | intent=%s | candidates=%d | results=%d | backend=%s | %.1fms",
         req.query,
+        product_terms,
         intent.get("label"),
         len(candidates),
         len(ranked),
