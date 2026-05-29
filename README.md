@@ -57,8 +57,10 @@ docker-compose up --build
 ```
 
 Environment variables
-- `PINECONE_API` — Pinecone API key (optional; service falls back to TF-IDF offline)
-- `HF_API_KEY` — Hugging Face API key for SentenceTransformers embeddings (optional)
+- `PINECONE_API` — Pinecone API key for remote hybrid search (required for cloud mode)
+- `HF_API_KEY` — Hugging Face API key for remote embeddings (required for cloud mode)
+- `PINECONE_INDEX` — Pinecone index name (default `behavioriq-products`)
+- `PINECONE_CLOUD` / `PINECONE_REGION` — Pinecone serverless region (default `aws` / `us-east-1`)
 
 Project layout (important files)
 ---
@@ -133,7 +135,7 @@ Development notes
 ---
 
 - The code includes a hybrid search pipeline (`models/reranker_updated.py`) which uses a `CloudEmbedder` (HF embeddings with TF-IDF fallback), a `SparseEncoder` for sparse signals, and `PineconeManager` for hybrid retrieval or an in-memory fallback.
-- At startup the service seeds product vectors from `data/products.json` (see `seeds/`)
+- At startup the service loads the shared catalog from `../data/products.json` (repo root) via `catalog.py`
 - The service exposes Prometheus metrics and basic tracing via `metrics.py`
 
 Documentation & integration
