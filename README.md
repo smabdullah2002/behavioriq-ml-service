@@ -2,6 +2,14 @@
 
 BehaviorIQ ML Service is a lightweight FastAPI microservice that provides behavioral commerce intelligence for e-commerce applications. It exposes fast endpoints for session intent scoring, RFM churn prediction, user behavioral vector construction, and a full search pipeline (semantic retrieval → intent analysis → behavior-aware reranking).
 
+Check live at
+---
+
+- https://biq-web.nxs.bd -> web storefront and dashboard
+- https://biq-api.nxs.bd -> API service and /docs for swagger
+- https://biq-ml.nxs.bd -> ML service
+- https://biq-grafana.nxs.bd -> dashboard
+
 Badges
 ---
 <!-- Replace placeholders with your CI status / coverage badges if available -->
@@ -166,6 +174,9 @@ If you'd like, I can also:
 - add a minimal `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`
 - add CI badges and a sample GitHub Actions workflow
 - generate OpenAPI client snippets for frontend teams
+
+
+
 
 
 
