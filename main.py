@@ -115,6 +115,46 @@ def prometheus_metrics():
     return Response(content=body, media_type=ctype)
 
 
+def biq_index_status() -> dict:
+    """Pinecone index status for health and index-status endpoints."""
+    if _biq_pinecone_mgr and not _biq_pinecone_mgr.offline and _biq_pinecone_mgr._index:
+        try:
+            stats = _biq_pinecone_mgr._index.describe_index_stats()
+            return {"status": "connected", "index": INDEX_NAME, "stats": stats}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+    return {
+        "status": "offline",
+        "index": INDEX_NAME,
+        "indexed_products": len(_biq_pinecone_mgr._store) if _biq_pinecone_mgr else 0,
+    }
+
+
+@app.get("/")
+def root():
+    """Service index with links to health and API docs."""
+    return {
+        "service": "BehaviorIQ ML Service",
+        "version": app.version,
+        "status": "ok",
+        "links": {
+            "health": "/health",
+            "docs": "/docs",
+            "openapi": "/openapi.json",
+            "metrics": "/metrics",
+        },
+        "endpoints": [
+            "POST /ml/intent-score",
+            "POST /ml/churn-predict",
+            "POST /ml/user-vector",
+            "POST /ml/product-embed",
+            "POST /ml/search-rerank",
+            "POST /ml/search",
+            "GET /ml/search/index-status",
+        ],
+    }
+
+
 # ── Startup ───────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def startup_event():
@@ -450,17 +490,7 @@ def ml_search(req: BIQSearchRequest):
 @app.get("/ml/search/index-status")
 def ml_search_index_status():
     """Status of the Pinecone hybrid index."""
-    if _biq_pinecone_mgr and not _biq_pinecone_mgr.offline and _biq_pinecone_mgr._index:
-        try:
-            stats = _biq_pinecone_mgr._index.describe_index_stats()
-            return {"status": "connected", "index": INDEX_NAME, "stats": stats}
-        except Exception as exc:
-            return {"status": "error", "error": str(exc)}
-    return {
-        "status": "offline",
-        "index": INDEX_NAME,
-        "indexed_products": len(_biq_pinecone_mgr._store) if _biq_pinecone_mgr else 0,
-    }
+    return biq_index_status()
 
 
 @app.get("/health")
