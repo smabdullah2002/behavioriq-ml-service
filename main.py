@@ -68,9 +68,15 @@ from schemas.requests import (
 )
 from seeds.generator import initialize_seed_data
 from models.preprocessor import normalize_intent_features
+from rag.vector_store import PineconeVectorStore
+from chains.commerce_assistant import CommerceAssistant
+from api.chat import router as chat_router, set_assistant
+from api.ingest import router as ingest_router, set_ingest_dependencies
 
 # ── App init ──────────────────────────────────────────────────────────────────
 app = FastAPI(title="BehaviorIQ ML Service", version="0.1.0")
+app.include_router(chat_router)
+app.include_router(ingest_router)
 
 # Global state
 embedder = ProductEmbedder()
@@ -84,6 +90,10 @@ _biq_sparse_enc: SparseEncoder | None = None
 _biq_pinecone_mgr: PineconeManager | None = None
 _biq_intent = IntentAnalyzer()
 _biq_reranker = BehaviorIQReranker()
+
+# RAG singletons
+_rag_vector_store: PineconeVectorStore | None = None
+_rag_assistant: CommerceAssistant | None = None
 
 
 # ── Middleware: per-request latency logging + Prometheus ────────────────────
@@ -152,17 +162,35 @@ def startup_event():
         offline=OFFLINE_MODE,
     )
 
-    dense_vecs = _biq_embedder.embed(biq_corpus)
-    sparse_vecs = [_biq_sparse_enc.encode(t) for t in biq_corpus]
-    _biq_pinecone_mgr.upsert_products(biq_products, dense_vecs, sparse_vecs)
+    # Only upsert on startup if explicitly enabled
+    upsert_on_startup = os.environ.get("UPSERT_PRODUCTS_ON_STARTUP", "false").lower() == "true"
+    if upsert_on_startup:
+        dense_vecs = _biq_embedder.embed(biq_corpus)
+        sparse_vecs = [_biq_sparse_enc.encode(t) for t in biq_corpus]
+        _biq_pinecone_mgr.upsert_products(biq_products, dense_vecs, sparse_vecs)
+        logger.info("Products upserted to Pinecone on startup")
+    else:
+        logger.info("Skipping product upsert (set UPSERT_PRODUCTS_ON_STARTUP=true to enable)")
 
     biq_backend = (
         "pinecone_hybrid" if not _biq_pinecone_mgr.offline else "offline_tfidf"
     )
     embedder_type = "HF" if not _biq_embedder.offline else "TF-IDF"
 
+    # ── RAG assistant init ────────────────────────────────────────────────────
+    global _rag_vector_store, _rag_assistant
+
+    _rag_vector_store = PineconeVectorStore(
+        _biq_pinecone_mgr, _biq_embedder, _biq_sparse_enc
+    )
+    llm_provider = os.environ.get("LLM_PROVIDER", "gemini").lower()
+    _rag_assistant = CommerceAssistant(_rag_vector_store, provider=llm_provider)
+    set_assistant(_rag_assistant)
+    set_ingest_dependencies(_biq_embedder, _biq_sparse_enc, _rag_vector_store)
+    logger.info("RAG assistant ready | provider=%s", llm_provider)
+
     logger.info(
-        "ML Service ready | products=%d | embedder=%s | biq_backend=%s | endpoints=intent-score,churn-predict,user-vector,search-rerank,search",
+        "ML Service ready | products=%d | embedder=%s | biq_backend=%s | endpoints=intent-score,churn-predict,user-vector,search-rerank,search,chat,ingest",
         len(product_vectors),
         embedder_type,
         biq_backend,
