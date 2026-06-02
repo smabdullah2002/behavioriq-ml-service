@@ -13,3 +13,8 @@ psutil
 nvidia-ml-py
 pinecone
 python-dotenv
+langchain>=0.1.0
+langchain-anthropic
+langchain-openai
+langchain-google-genai
+langchain-community
