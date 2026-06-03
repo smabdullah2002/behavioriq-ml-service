@@ -41,6 +41,7 @@ from models.reranker_updated import (
     PineconeManager,
     IntentAnalyzer,
     BehaviorIQReranker,
+    apply_query_first_filter,
     PINECONE_API_KEY,
     HF_API_KEY,
     OFFLINE_MODE,
@@ -65,6 +66,8 @@ from schemas.requests import (
     BIQSearchResponse,
     BIQProductResult,
     BIQIntentInfo,
+    ChatRequest,
+    ChatResponse,
 )
 from seeds.generator import initialize_seed_data
 from models.preprocessor import normalize_intent_features
@@ -75,6 +78,10 @@ from api.ingest import router as ingest_router, set_ingest_dependencies
 
 # ── App init ──────────────────────────────────────────────────────────────────
 app = FastAPI(title="BehaviorIQ ML Service", version="0.1.0")
+app.include_router(chat_router)
+app.include_router(ingest_router)
+
+# Include routers
 app.include_router(chat_router)
 app.include_router(ingest_router)
 
@@ -122,6 +129,46 @@ def prometheus_metrics():
     """Prometheus scrape endpoint (configure Grafana via Prometheus datasource)."""
     body, ctype = metrics_payload()
     return Response(content=body, media_type=ctype)
+
+
+def biq_index_status() -> dict:
+    """Pinecone index status for health and index-status endpoints."""
+    if _biq_pinecone_mgr and not _biq_pinecone_mgr.offline and _biq_pinecone_mgr._index:
+        try:
+            stats = _biq_pinecone_mgr._index.describe_index_stats()
+            return {"status": "connected", "index": INDEX_NAME, "stats": stats}
+        except Exception as exc:
+            return {"status": "error", "error": str(exc)}
+    return {
+        "status": "offline",
+        "index": INDEX_NAME,
+        "indexed_products": len(_biq_pinecone_mgr._store) if _biq_pinecone_mgr else 0,
+    }
+
+
+@app.get("/")
+def root():
+    """Service index with links to health and API docs."""
+    return {
+        "service": "BehaviorIQ ML Service",
+        "version": app.version,
+        "status": "ok",
+        "links": {
+            "health": "/health",
+            "docs": "/docs",
+            "openapi": "/openapi.json",
+            "metrics": "/metrics",
+        },
+        "endpoints": [
+            "POST /ml/intent-score",
+            "POST /ml/churn-predict",
+            "POST /ml/user-vector",
+            "POST /ml/product-embed",
+            "POST /ml/search-rerank",
+            "POST /ml/search",
+            "GET /ml/search/index-status",
+        ],
+    }
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
@@ -180,14 +227,17 @@ def startup_event():
     # ── RAG assistant init ────────────────────────────────────────────────────
     global _rag_vector_store, _rag_assistant
 
-    _rag_vector_store = PineconeVectorStore(
-        _biq_pinecone_mgr, _biq_embedder, _biq_sparse_enc
-    )
-    llm_provider = os.environ.get("LLM_PROVIDER", "gemini").lower()
-    _rag_assistant = CommerceAssistant(_rag_vector_store, provider=llm_provider)
-    set_assistant(_rag_assistant)
-    set_ingest_dependencies(_biq_embedder, _biq_sparse_enc, _rag_vector_store)
-    logger.info("RAG assistant ready | provider=%s", llm_provider)
+    if _biq_embedder is not None and _biq_sparse_enc is not None and _biq_pinecone_mgr is not None:
+        _rag_vector_store = PineconeVectorStore(
+            _biq_pinecone_mgr, _biq_embedder, _biq_sparse_enc
+        )
+        llm_provider = os.environ.get("LLM_PROVIDER", "gemini").lower()
+        _rag_assistant = CommerceAssistant(_rag_vector_store, provider=llm_provider)
+        set_assistant(_rag_assistant)
+        set_ingest_dependencies(_biq_embedder, _biq_sparse_enc, _rag_vector_store)
+        logger.info("RAG assistant ready | provider=%s", llm_provider)
+    else:
+        logger.warning("RAG Assistant not initialized (BIQ pipeline incomplete)")
 
     logger.info(
         "ML Service ready | products=%d | embedder=%s | biq_backend=%s | endpoints=intent-score,churn-predict,user-vector,search-rerank,search,chat,ingest",
@@ -391,7 +441,7 @@ _EP_SEARCH = "/ml/search"
 
 @app.post("/ml/search", response_model=BIQSearchResponse)
 def ml_search(req: BIQSearchRequest):
-    """Full BehaviorIQ pipeline: semantic+keyword search → intent → rerank."""
+    """Query-first hybrid search: product-term gate → semantic retrieval → intent rerank."""
     from fastapi import HTTPException
 
     if _biq_embedder is None or _biq_sparse_enc is None or _biq_pinecone_mgr is None:
@@ -399,19 +449,26 @@ def ml_search(req: BIQSearchRequest):
 
     t0 = time.perf_counter()
 
-    with observe_step(_EP_SEARCH, "embed_query"):
-        query_dense = _biq_embedder.embed_one(req.query)
-        query_sparse = _biq_sparse_enc.encode(req.query)
+    product_terms = _biq_intent.extract_product_terms(req.query)
+    product_query = _biq_intent.extract_product_query(req.query)
 
     with observe_step(_EP_SEARCH, "intent_analysis"):
         intent = _biq_intent.analyze(req.query)
+
+    with observe_step(_EP_SEARCH, "embed_query"):
+        query_dense = _biq_embedder.embed_one(req.query)
+        # Sparse/keyword retrieval focuses on product terms, not intent modifiers
+        query_sparse = _biq_sparse_enc.encode(product_query)
 
     with observe_step(_EP_SEARCH, "retrieve_candidates"):
         candidates = _biq_pinecone_mgr.query(
             query_dense, query_sparse, top_k=TOP_CANDIDATES
         )
 
-    # Narrow by category slot
+    with observe_step(_EP_SEARCH, "query_first_filter"):
+        candidates = apply_query_first_filter(candidates, product_terms)
+
+    # Narrow by category slot extracted from product terms
     cat_slot = intent.get("slots", {}).get("category")
     if cat_slot:
         filtered = [c for c in candidates if c["metadata"].get("category") == cat_slot]
@@ -437,6 +494,7 @@ def ml_search(req: BIQSearchRequest):
             intent,
             churn_score=req.churn_score,
             weights=req.weights,
+            product_terms=product_terms,
         )
     ranked = ranked[: req.top_k]
 
@@ -446,8 +504,9 @@ def ml_search(req: BIQSearchRequest):
     )
 
     logger.info(
-        "search | query=%r | intent=%s | candidates=%d | results=%d | backend=%s | %.1fms",
+        "search | query=%r | product_terms=%s | intent=%s | candidates=%d | results=%d | backend=%s | %.1fms",
         req.query,
+        product_terms,
         intent.get("label"),
         len(candidates),
         len(ranked),
@@ -468,17 +527,7 @@ def ml_search(req: BIQSearchRequest):
 @app.get("/ml/search/index-status")
 def ml_search_index_status():
     """Status of the Pinecone hybrid index."""
-    if _biq_pinecone_mgr and not _biq_pinecone_mgr.offline and _biq_pinecone_mgr._index:
-        try:
-            stats = _biq_pinecone_mgr._index.describe_index_stats()
-            return {"status": "connected", "index": INDEX_NAME, "stats": stats}
-        except Exception as exc:
-            return {"status": "error", "error": str(exc)}
-    return {
-        "status": "offline",
-        "index": INDEX_NAME,
-        "indexed_products": len(_biq_pinecone_mgr._store) if _biq_pinecone_mgr else 0,
-    }
+    return biq_index_status()
 
 
 @app.get("/health")

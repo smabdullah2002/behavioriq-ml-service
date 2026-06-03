@@ -3,9 +3,11 @@ BehaviorIQ Reranker — Updated Full Pipeline
 
 Pipeline:
   raw query
-    -> Step 1: Semantic + keyword search  (Pinecone hybrid: dense + sparse)
-    -> Step 2: Search intent analysis     (rule-based, confidence-scored)
-    -> Step 3: BehaviorIQ reranker        (intent + vectors + pricing + churn)
+    -> Step 1: Parse product terms vs shopping-intent modifiers
+    -> Step 2: Keyword-first candidate gate (query match on name/category/desc)
+    -> Step 3: Semantic + keyword retrieval (sparse encodes product terms only)
+    -> Step 4: Search intent analysis     (rule-based, confidence-scored)
+    -> Step 5: BehaviorIQ reranker        (query match + vectors + intent + pricing)
 
 Run standalone:
     python reranker_updated.py
@@ -118,21 +120,44 @@ _INTENT_KEYWORDS: Dict[str, List[str]] = {
     ],
 }
 
-# Category keyword → category slug for slot extraction
+# Category keyword → category slug for slot extraction (aligned to shared catalog)
 _CATEGORY_HINTS: Dict[str, str] = {
-    "running shoe": "running_shoes",
-    "running shoes": "running_shoes",
-    "trail shoe": "trail_shoes",
-    "trail shoes": "trail_shoes",
-    "casual shoe": "casual_shoes",
-    "sneaker": "casual_shoes",
-    "sandal": "sandals",
-    "shirt": "sports_shirt",
-    "tee": "sports_shirt",
-    "shorts": "sports_shorts",
-    "tights": "sports_pants",
-    "legging": "sports_pants",
-    "kids": "kids_shoes",
+    "running shoe": "road running",
+    "running shoes": "road running",
+    "road running": "road running",
+    "walking shoe": "walking",
+    "walking shoes": "walking",
+    "trail shoe": "road running",
+    "trail shoes": "road running",
+    "casual shoe": "fashion sneakers",
+    "casual shoes": "fashion sneakers",
+    "fashion sneaker": "fashion sneakers",
+    "fashion sneakers": "fashion sneakers",
+    "sneaker": "fashion sneakers",
+    "sneakers": "fashion sneakers",
+    "shoe": "shoes",
+    "shoes": "shoes",
+    "loafer": "loafers and slip-ons",
+    "loafers": "loafers and slip-ons",
+    "sandal": "flip-flops",
+    "sandals": "flip-flops",
+    "flip-flop": "flip-flops",
+    "flip-flops": "flip-flops",
+    "boxer": "boxers",
+    "boxers": "boxers",
+    "polo": "polos",
+    "polos": "polos",
+    "shirt": "active shirts and tees",
+    "shirts": "active shirts and tees",
+    "tee": "active shirts and tees",
+    "tees": "active shirts and tees",
+    "shorts": "active shorts",
+    "pants": "pants",
+    "jeans": "jeans",
+    "dress": "dress",
+    "dresses": "dresses",
+    "socks": "athletic socks",
+    "sock": "athletic socks",
 }
 
 _KNOWN_BRANDS = [
@@ -141,6 +166,199 @@ _KNOWN_BRANDS = [
     "merrell", "lululemon", "gymshark", "under armour", "mizuno",
     "birkenstock", "teva", "crocs", "havaianas", "garmin", "balega",
 ]
+
+_QUERY_STOPWORDS = frozenset({
+    "a", "an", "the", "for", "and", "or", "with", "in", "on", "of", "to", "my",
+    "me", "good", "nice", "new", "men", "mens", "women", "womens", "man", "woman",
+})
+
+# Catalog-aligned product-type groups (shared data/products.json taxonomy)
+_FOOTWEAR_CATEGORIES = frozenset({
+    "shoes", "fashion sneakers", "road running", "walking", "loafers and slip-ons",
+    "skateboarding", "soccer", "flats", "mules and clogs", "flip-flops",
+})
+
+_PRODUCT_TYPE_TERMS: Dict[str, frozenset] = {
+    "footwear": _FOOTWEAR_CATEGORIES,
+    "shoe": _FOOTWEAR_CATEGORIES,
+    "shoes": _FOOTWEAR_CATEGORIES,
+    "sneaker": _FOOTWEAR_CATEGORIES,
+    "sneakers": _FOOTWEAR_CATEGORIES,
+    "trainer": _FOOTWEAR_CATEGORIES,
+    "trainers": _FOOTWEAR_CATEGORIES,
+    "loafer": frozenset({"loafers and slip-ons"}),
+    "loafers": frozenset({"loafers and slip-ons"}),
+    "sandal": frozenset({"flip-flops"}),
+    "sandals": frozenset({"flip-flops"}),
+    "flip-flop": frozenset({"flip-flops"}),
+    "flip-flops": frozenset({"flip-flops"}),
+    "boxer": frozenset({"boxers", "boxer briefs"}),
+    "boxers": frozenset({"boxers", "boxer briefs"}),
+    "brief": frozenset({"briefs", "boxer briefs"}),
+    "briefs": frozenset({"briefs", "boxer briefs"}),
+    "polo": frozenset({"polos"}),
+    "polos": frozenset({"polos"}),
+    "shirt": frozenset({
+        "polos", "active shirts and tees", "blouses and button-down shirts",
+        "button-down shirts", "active hoodies", "fashion hoodies and sweatshirts",
+    }),
+    "shirts": frozenset({
+        "polos", "active shirts and tees", "blouses and button-down shirts",
+        "button-down shirts", "active hoodies", "fashion hoodies and sweatshirts",
+    }),
+    "tee": frozenset({"active shirts and tees"}),
+    "tees": frozenset({"active shirts and tees"}),
+    "pant": frozenset({"sports pants", "suit pants", "flat front", "cargo", "bottoms", "pants"}),
+    "pants": frozenset({"sports pants", "suit pants", "flat front", "cargo", "bottoms", "pants"}),
+    "jean": frozenset({"jeans"}),
+    "jeans": frozenset({"jeans"}),
+    "short": frozenset({
+        "active shorts", "sports shorts", "board shorts", "compression shorts",
+    }),
+    "shorts": frozenset({
+        "active shorts", "sports shorts", "board shorts", "compression shorts",
+    }),
+    "sock": frozenset({"ankle socks", "athletic socks", "crew socks", "calf socks"}),
+    "socks": frozenset({"ankle socks", "athletic socks", "crew socks", "calf socks"}),
+    "dress": frozenset({"dress", "dresses"}),
+    "dresses": frozenset({"dress", "dresses"}),
+}
+
+MIN_QUERY_MATCH_SCORE = 0.12
+MIN_QUERY_FILTERED_CANDIDATES = 8
+
+
+def _flatten_intent_phrases() -> List[str]:
+    phrases: List[str] = []
+    for keywords in _INTENT_KEYWORDS.values():
+        phrases.extend(keywords)
+    return sorted(set(phrases), key=len, reverse=True)
+
+
+_INTENT_PHRASES: List[str] = _flatten_intent_phrases()
+
+
+def expand_product_terms(terms: List[str]) -> List[str]:
+    """Expand a product term to related tokens and catalog category hints."""
+    expanded: List[str] = []
+    seen: set = set()
+
+    def add(value: str) -> None:
+        v = value.strip().lower()
+        if len(v) >= 2 and v not in seen:
+            seen.add(v)
+            expanded.append(v)
+
+    for term in terms:
+        add(term)
+        singular = term.rstrip("s") if term.endswith("s") and len(term) > 3 else term
+        add(singular)
+        for key in (term, singular):
+            for cat in _PRODUCT_TYPE_TERMS.get(key, ()):
+                add(cat)
+
+    return expanded
+
+
+def compute_query_match_score(meta: Dict, product_terms: List[str]) -> float:
+    """
+    Score how well a product matches the query's product terms (0–1).
+    Intent modifiers such as 'premium' or 'cheap' are excluded upstream.
+    """
+    if not product_terms:
+        return 1.0
+
+    name = str(meta.get("name", "")).lower()
+    desc = str(meta.get("desc", "")).lower()
+    category = str(meta.get("category", "")).lower()
+    brand = str(meta.get("brand", "")).lower()
+    haystack = f"{name} {desc} {category} {brand}"
+
+    total_weight = 0.0
+    matched_weight = 0.0
+
+    for raw_term in product_terms:
+        term = raw_term.lower().strip()
+        if len(term) < 2:
+            continue
+
+        term_weight = 2.0
+        total_weight += term_weight
+        matched = False
+
+        allowed_categories = _PRODUCT_TYPE_TERMS.get(term) or _PRODUCT_TYPE_TERMS.get(
+            term.rstrip("s")
+        )
+        if allowed_categories and category in allowed_categories:
+            matched_weight += term_weight
+            matched = True
+            continue
+
+        variants = {term}
+        if term.endswith("s") and len(term) > 3:
+            variants.add(term[:-1])
+        else:
+            variants.add(f"{term}s")
+
+        for variant in variants:
+            if not variant:
+                continue
+            if variant in name:
+                matched_weight += term_weight
+                matched = True
+                break
+            if variant in category:
+                matched_weight += term_weight * 0.9
+                matched = True
+                break
+            if variant in haystack:
+                matched_weight += term_weight * 0.75
+                matched = True
+                break
+
+        if not matched and allowed_categories:
+            # e.g. "shoes" query should still match footwear categories by alias
+            for allowed in allowed_categories:
+                if allowed in category or allowed in name:
+                    matched_weight += term_weight * 0.85
+                    matched = True
+                    break
+
+    if total_weight <= 0:
+        return 1.0
+    return float(np.clip(matched_weight / total_weight, 0.0, 1.0))
+
+
+def apply_query_first_filter(
+    candidates: List[Dict],
+    product_terms: List[str],
+    *,
+    min_keep: int = MIN_QUERY_FILTERED_CANDIDATES,
+    min_score: float = MIN_QUERY_MATCH_SCORE,
+) -> List[Dict]:
+    """
+    Keep candidates that match the product portion of the query before intent rerank.
+    Falls back to the best keyword matches if the hard gate is too strict.
+    """
+    if not product_terms:
+        return candidates
+
+    scored: List[Dict] = []
+    for candidate in candidates:
+        meta = candidate.get("metadata", {})
+        query_match_score = compute_query_match_score(meta, product_terms)
+        scored.append({**candidate, "query_match_score": query_match_score})
+
+    strong = [c for c in scored if c["query_match_score"] >= min_score]
+    if len(strong) >= min_keep:
+        return strong
+
+    scored.sort(key=lambda c: c["query_match_score"], reverse=True)
+    positive = [c for c in scored if c["query_match_score"] > 0]
+    if positive:
+        return positive[: max(min_keep, len(positive))]
+
+    return scored[:min_keep]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -507,6 +725,39 @@ class IntentAnalyzer:
         return {"label": best, "confidence": confidence, "slots": slots}
 
     @staticmethod
+    def extract_product_terms(query: str) -> List[str]:
+        """
+        Strip shopping-intent modifiers and return product-focused query tokens.
+        Example: 'premium shoes' -> ['shoes']; 'cheap nike running shoes' -> ['nike', 'running', 'shoes']
+        """
+        q = query.lower().strip()
+        working = f" {q} "
+
+        for phrase in _INTENT_PHRASES:
+            working = working.replace(f" {phrase} ", " ")
+
+        working = re.sub(
+            r"(?:under|below|less than|max|maximum|\$)\s*\$?\d+(?:\.\d{1,2})?",
+            " ",
+            working,
+        )
+
+        terms: List[str] = []
+        seen: set = set()
+        for token in re.findall(r"[a-z0-9]+", working):
+            if len(token) < 2 or token in _QUERY_STOPWORDS or token in seen:
+                continue
+            seen.add(token)
+            terms.append(token)
+
+        return terms
+
+    @staticmethod
+    def extract_product_query(query: str) -> str:
+        terms = IntentAnalyzer.extract_product_terms(query)
+        return " ".join(terms) if terms else query.strip()
+
+    @staticmethod
     def _extract_slots(q: str) -> Dict:
         slots: Dict[str, str] = {}
 
@@ -553,10 +804,12 @@ class BehaviorIQReranker:
         intent: Dict,
         churn_score: float = 0.5,
         weights: Optional[Dict[str, float]] = None,
+        product_terms: Optional[List[str]] = None,
     ) -> List[Dict]:
         label      = intent.get("label", "exploratory")
         confidence = float(intent.get("confidence", 0.30))
         w          = weights or _INTENT_WEIGHTS.get(label, BASE_WEIGHTS)
+        has_product_terms = bool(product_terms)
 
         # Normalize dense + sparse scores across the candidate set
         dense_max  = max((c["dense_sim"]    for c in candidates), default=1.0) or 1.0
@@ -578,6 +831,14 @@ class BehaviorIQReranker:
             if not meta.get("stock", True):
                 continue  # guardrail: never rank out-of-stock items
 
+            query_match_score = float(
+                c.get("query_match_score")
+                if c.get("query_match_score") is not None
+                else compute_query_match_score(meta, product_terms or [])
+            )
+            if has_product_terms and query_match_score <= 0:
+                continue
+
             price      = float(meta.get("price", 0))
             discount   = float(meta.get("discount", 0))
             discount   = self._effective_discount(discount, churn_score, label)
@@ -589,8 +850,14 @@ class BehaviorIQReranker:
             norm_sparse = c["sparse_score"] / sparse_max
             vector_score = W_DENSE * norm_dense + W_SPARSE * norm_sparse
 
+            if has_product_terms:
+                # Query-first: lexical product match gates relevance before intent pricing
+                vector_score = 0.55 * vector_score + 0.45 * query_match_score
+
             # Relevance floor: suppress semantically irrelevant candidates
-            relevance_ok = vector_score >= 0.05
+            relevance_ok = vector_score >= 0.05 and (
+                not has_product_terms or query_match_score >= MIN_QUERY_MATCH_SCORE
+            )
 
             # ── pricing_score ─────────────────────────────────────────────
             norm_price    = (price - min_p) / price_span  # 0 = cheapest, 1 = priciest
@@ -656,19 +923,33 @@ class BehaviorIQReranker:
                 "vector_score":      round(float(vector_score), 4),
                 "dense_sim":         round(float(norm_dense), 4),
                 "sparse_score":      round(float(norm_sparse), 4),
+                "query_match_score": round(float(query_match_score), 4),
                 "intent_score":      round(float(intent_score), 4),
                 "pricing_score":     round(float(pricing_score), 4),
                 "intent_label":      label,
                 "intent_confidence": round(confidence, 4),
-                "rank_explanation":  self._explain(label, price, discount, rating, final_score),
+                "rank_explanation":  self._explain(
+                    label, price, discount, rating, final_score, query_match_score
+                ),
             })
 
         results.sort(key=lambda r: r["final_score"], reverse=True)
         return results
 
     @staticmethod
-    def _explain(label: str, price: float, discount: float, rating: float, score: float) -> str:
+    def _explain(
+        label: str,
+        price: float,
+        discount: float,
+        rating: float,
+        score: float,
+        query_match_score: float = 1.0,
+    ) -> str:
         parts: List[str] = []
+        if query_match_score >= 0.5:
+            parts.append("strong query match")
+        elif query_match_score > 0:
+            parts.append("query match")
         if label == "price_sensitive":
             parts.append(f"budget pick at ${price:.2f}")
             if discount > 0:
@@ -813,25 +1094,33 @@ def startup_event() -> None:
 def search(req: SearchRequest) -> SearchResponse:
     """
     Full BehaviorIQ pipeline:
-      1. Embed query (dense + sparse)
-      2. Hybrid retrieve candidates from Pinecone
-      3. Detect search intent with confidence
-      4. Rerank with vector + intent + pricing + churn signals
+      1. Parse product terms vs shopping-intent modifiers
+      2. Embed query (dense on full query, sparse on product terms)
+      3. Hybrid retrieve candidates from Pinecone
+      4. Query-first filter on product terms
+      5. Detect search intent with confidence
+      6. Rerank with query match + vector + intent + pricing + churn signals
     """
     if _embedder is None or _sparse_enc is None or _pinecone_mgr is None:
         raise HTTPException(503, "Service not initialised yet — retry in a moment")
 
     t0 = time.perf_counter()
 
-    # ── Step 1: Embed query ───────────────────────────────────────────────────
-    query_dense  = _embedder.embed_one(req.query)
-    query_sparse = _sparse_enc.encode(req.query)
+    product_terms = _intent_analyzer.extract_product_terms(req.query)
+    product_query = _intent_analyzer.extract_product_query(req.query)
 
-    # ── Step 2: Intent analysis ───────────────────────────────────────────────
+    # ── Step 1: Intent analysis ───────────────────────────────────────────────
     intent = _intent_analyzer.analyze(req.query)
+
+    # ── Step 2: Embed query ───────────────────────────────────────────────────
+    query_dense  = _embedder.embed_one(req.query)
+    query_sparse = _sparse_enc.encode(product_query)
 
     # ── Step 3: Retrieve candidates ───────────────────────────────────────────
     candidates = _pinecone_mgr.query(query_dense, query_sparse, top_k=TOP_CANDIDATES)
+
+    # ── Step 4: Query-first product gate ──────────────────────────────────────
+    candidates = apply_query_first_filter(candidates, product_terms)
 
     # Optional: narrow by category slot from intent
     cat_slot = intent.get("slots", {}).get("category")
@@ -849,12 +1138,13 @@ def search(req: SearchRequest) -> SearchResponse:
         except ValueError:
             pass
 
-    # ── Step 4: BehaviorIQ rerank ─────────────────────────────────────────────
+    # ── Step 5: BehaviorIQ rerank ─────────────────────────────────────────────
     ranked = _reranker.rerank(
         candidates,
         intent,
         churn_score=req.churn_score,
         weights=req.weights,
+        product_terms=product_terms,
     )
     ranked = ranked[: req.top_k]
 

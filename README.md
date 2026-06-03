@@ -1,181 +1,188 @@
 # BehaviorIQ ML Service
 
-BehaviorIQ ML Service is a lightweight FastAPI microservice that provides behavioral commerce intelligence for e-commerce applications. It exposes fast endpoints for session intent scoring, RFM churn prediction, user behavioral vector construction, and a full search pipeline (semantic retrieval → intent analysis → behavior-aware reranking).
+BehaviorIQ ML Service is a FastAPI microservice providing behavioral commerce intelligence for e-commerce. It delivers session intent scoring, RFM churn prediction, user behavioral vectors, hybrid search with intent-aware reranking, and a RAG-powered AI commerce assistant.
 
-Check live at
----
+**Live instances:**
+- https://biq-ml.nxs.bd — ML service
+- https://biq-api.nxs.bd — API service + Swagger docs
+- https://biq-web.nxs.bd — Storefront & dashboard
+- https://biq-grafana.nxs.bd — Grafana observability
 
-- https://biq-web.nxs.bd -> web storefront and dashboard
-- https://biq-api.nxs.bd -> API service and /docs for swagger
-- https://biq-ml.nxs.bd -> ML service
-- https://biq-grafana.nxs.bd -> dashboard
-
-Badges
----
-<!-- Replace placeholders with your CI status / coverage badges if available -->
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![status](https://img.shields.io/badge/status-experimental-yellow)
 
-Why this project
----
-- Fast, reproducible ML endpoints for demoing behavioral personalization
-- Full search pipeline with Pinecone hybrid retrieval (dense + sparse) and intent-aware reranking
-- Deterministic intent formula + trained churn model for explainability
-
-Contents of this README
----
-- What the project does
-- Quick start (install, run)
-- API summary and examples
-- Deployment & environment notes
-- Links to integration docs and design plans
-- How to contribute and get help
-
-Quick start
 ---
 
-Prerequisites
-- Python 3.10+
-- (Optional) Docker & Docker Compose for containerized runs
-
-Install dependencies
+## Quick Start
 
 ```bash
+# Install
 python -m pip install -r requirements.txt
-```
 
-Run locally
-
-```bash
+# Run locally
 uvicorn main:app --host 0.0.0.0 --port 8001 --reload
-```
 
-Run with Docker Compose
-
-```bash
+# Or with full observability stack
 docker-compose up --build
 ```
 
-Environment variables
-- `PINECONE_API` — Pinecone API key for remote hybrid search (required for cloud mode)
-- `HF_API_KEY` — Hugging Face API key for remote embeddings (required for cloud mode)
-- `PINECONE_INDEX` — Pinecone index name (default `behavioriq-products`)
-- `PINECONE_CLOUD` / `PINECONE_REGION` — Pinecone serverless region (default `aws` / `us-east-1`)
+## Environment Variables
 
-Project layout (important files)
----
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PINECONE_API` | cloud only | — | Pinecone API key for hybrid search |
+| `HF_API_KEY` | cloud only | — | Hugging Face API key for embeddings |
+| `PINECONE_INDEX` | no | `behavioriq-products` | Pinecone index name |
+| `PINECONE_CLOUD` | no | `aws` | Pinecone serverless cloud |
+| `PINECONE_REGION` | no | `us-east-1` | Pinecone serverless region |
+| `LLM_PROVIDER` | no | `gemini` | RAG LLM: `claude`, `openai`, or `gemini` |
+| `ANTHROPIC_API_KEY` | for claude | — | Anthropic API key |
+| `OPENAI_API_KEY` | for openai | — | OpenAI API key |
+| `GOOGLE_API_KEY` | for gemini | — | Google AI API key |
+| `UPSERT_PRODUCTS_ON_STARTUP` | no | `false` | Set `true` to upsert products to Pinecone on boot |
+| `PRODUCT_CATALOG_PATH` | no | `data/products.json` | Path to shared product catalog |
+| `LOKI_URL` | no | `http://localhost:3100` | Loki log push endpoint |
+
+## API Endpoints
+
+| Endpoint | Description |
+|---|---|
+| `POST /ml/intent-score` | Session purchase intent score (0–100) with per-signal breakdown |
+| `POST /ml/churn-predict` | Churn probability (0–1) with RFM breakdown + recommended action |
+| `POST /ml/user-vector` | Build user behavioral vector from recent product views |
+| `POST /ml/product-embed` | Embed a single product (TF-IDF) and register in the index |
+| `POST /ml/search` | **Full pipeline**: hybrid retrieval → intent analysis → behavior-aware rerank |
+| `POST /ml/search-rerank` | Legacy rerank: cosine similarity + keyword + pricing |
+| `GET /ml/search/index-status` | Pinecone index status |
+| `POST /ml/chat` | RAG-powered AI commerce assistant (products, orders, churn, pricing, search logs) |
+| `POST /ml/ingest` | Ingest data into a namespaced Pinecone index |
+| `POST /ml/ingest/demo` | Seed demo data across all RAG namespaces |
+| `GET /ml/search/index-status` | Hybrid index status |
+| `GET /metrics` | Prometheus metrics |
+| `GET /health` | Health check |
+
+See [project_markdowns/behavioriq-ml-integration.md](project_markdowns/behavioriq-ml-integration.md) for full request/response schemas.
+
+### Quick Examples
+
+```bash
+# Intent score
+curl -X POST http://localhost:8001/ml/intent-score \
+  -H 'Content-Type: application/json' \
+  -d '{"product_visit_count":0.7,"time_on_product_page":0.6,"cart_add_events":0.2,"scroll_depth":0.5,"avg_spend_score":0.5,"session_recency":0.9}'
+
+# Churn prediction
+curl -X POST http://localhost:8001/ml/churn-predict \
+  -H 'Content-Type: application/json' \
+  -d '{"days_since_last_purchase":42,"total_order_count":3,"avg_order_value":78.5}'
+
+# Full search pipeline
+curl -X POST http://localhost:8001/ml/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"cheap running shoes","churn_score":0.2,"top_k":20}'
+
+# RAG chat
+curl -X POST http://localhost:8001/ml/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"What are my top selling products?"}'
+```
+
+## Project Layout
 
 ```
 ml-service/
-  main.py                   # FastAPI app and endpoints
-  models/                   # ML logic: intent, churn, embedder, reranker_updated
-  schemas/                  # Pydantic request/response models
-  plan_markdowns/           # Architecture and integration docs (contracts)
-  saved_models/             # Pickled artifacts (embedder, churn model)
+  main.py                          # FastAPI app, startup, all endpoints
+  catalog.py                       # Shared product catalog loader
+  logger.py / metrics.py           # Logging (stdout + Loki) + Prometheus metrics
+
+  models/
+    intent.py                      # Deterministic intent scoring formula
+    churn_model.py                 # LogisticRegression churn (Kaggle-trained + fallback)
+    churn.py                       # Legacy RFM formula (deprecated)
+    embedder.py                    # TF-IDF product/user vector builder
+    preprocessor.py                # Feature normalization for intent
+    reranker.py                    # Legacy rerank compatibility shim
+    reranker_updated.py            # Full pipeline: CloudEmbedder, SparseEncoder,
+                                   #   PineconeManager, IntentAnalyzer, BehaviorIQReranker
+
+  rag/
+    vector_store.py                # Multi-namespace Pinecone store for RAG
+    document_builder.py            # Converts raw data to RAG documents
+    prompts.py                     # LLM prompt templates
+    demo_data.py                   # Demo data generator (orders, churn, pricing, search)
+
+  chains/
+    commerce_assistant.py          # LangChain RAG chain (Claude/OpenAI/Gemini)
+
+  api/
+    chat.py                        # /ml/chat endpoint
+    ingest.py                      # /ml/ingest endpoints
+
+  schemas/
+    requests.py                    # All Pydantic request/response models
+
+  seeds/
+    generator.py                   # TF-IDF embedder init at startup
+
+  saved_models/                    # Pickled artifacts (embedder.pkl, churn_model.pkl)
+  data/
+    train.py                       # Churn model training on Kaggle Online Retail dataset
+    synthetic_churn.py             # Synthetic data generators
+
+  project_markdowns/               # Architecture + integration docs
+  grafana/                         # Pre-configured dashboards + data sources
+  test_results/                    # Manual test reports
+
+  Dockerfile / docker-compose.yml  # Containerized deployment
   requirements.txt
-  Dockerfile
-  docker-compose.yml
 ```
 
-API summary (short)
----
+## Architecture
 
-Use [plan_markdowns/behavioriq-ml-integration.md](plan_markdowns/behavioriq-ml-integration.md) for full request/response contracts.
-
-- `POST /ml/intent-score` — session intent score (0–100)
-- `POST /ml/churn-predict` — churn probability (0–1)
-- `POST /ml/user-vector` — build a per-user behavioral vector
-- `POST /ml/product-embed` — embed a single catalog product (TF-IDF); used by API on create/update
-- `POST /ml/search-rerank` — rerank keyword candidates with user + product vectors
-- `POST /ml/search` — BehaviorIQ full search pipeline (semantic retrieval → intent → rerank)
-- `GET /ml/search/index-status` — Pinecone index status (if configured)
-- `GET /metrics` — Prometheus metrics
-- `GET /health` — health check
-
-Example: intent score
-
-```bash
-curl -X POST http://localhost:8001/ml/intent-score \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "product_visit_count": 0.7,
-    "time_on_product_page": 0.6,
-    "cart_add_events": 0.2,
-    "scroll_depth": 0.5,
-    "avg_spend_score": 0.5,
-    "session_recency": 0.9
-  }'
+**Search Pipeline** (`/ml/search`):
+```
+query → CloudEmbedder (HF dense) + SparseEncoder (BM25)
+      → Pinecone hybrid retrieval (or in-memory TF-IDF fallback)
+      → IntentAnalyzer (price_sensitive / premium / urgent_buy / gift / comparison / exploratory)
+      → BehaviorIQReranker (vector × intent × pricing × churn signals)
+      → Ranked results with explanations
 ```
 
-Example: churn predict
+**Churn Model** (`/ml/churn-predict`):
+- Trained on real [Kaggle Online Retail](https://www.kaggle.com/datasets/tunguz/online-retail) dataset
+- RFM features → QuantileTransformer → LogisticRegression with Platt scaling
+- Falls back to synthetic training if no saved model exists
+- Blends ML probability with calibrated formula for SME-relevant ranges
 
-```bash
-curl -X POST http://localhost:8001/ml/churn-predict \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "days_since_last_purchase": 42,
-    "total_order_count": 3,
-    "avg_order_value": 78.5
-  }'
-```
+**RAG Chat** (`/ml/chat`):
+- Multi-namespace retrieval from Pinecone (products, orders, churn predictions, pricing decisions, search logs)
+- LangChain LCEL chain with configurable LLM (Claude Sonnet, GPT-4, Gemini 2.5 Flash)
 
-Example: full search (rerank)
+## Observability
 
-```bash
-curl -X POST http://localhost:8001/ml/search \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "query": "cheap running shoes",
-    "churn_score": 0.2,
-    "top_k": 20
-  }'
-```
+The `docker-compose.yml` spins up:
+- **Prometheus** — scrapes `/metrics` every 15s
+- **Loki** — log aggregation
+- **Grafana** — pre-provisioned dashboards + data sources
 
-Development notes
----
+All stack components are connected via the `observability` Docker network.
 
-- The code includes a hybrid search pipeline (`models/reranker_updated.py`) which uses a `CloudEmbedder` (HF embeddings with TF-IDF fallback), a `SparseEncoder` for sparse signals, and `PineconeManager` for hybrid retrieval or an in-memory fallback.
-- At startup the service loads the shared catalog from `../data/products.json` (repo root) via `catalog.py`
-- The service exposes Prometheus metrics and basic tracing via `metrics.py`
+## Documentation
 
-Documentation & integration
----
+- [Integration contract (schemas + examples)](project_markdowns/behavioriq-ml-integration.md)
+- [RAG / LangChain integration](project_markdowns/langchain-rag-integration.md)
+- [Project summary & gaps](project_markdowns/project-summary.md)
+- [FastAPI Swagger UI](http://localhost:8001/docs) (when running)
 
-- Integration contract (schemas + examples): [plan_markdowns/behavioriq-ml-integration.md](plan_markdowns/behavioriq-ml-integration.md)
-- Architecture & hackathon plan: [plan_markdowns/cloudcamp-hackathon.md](plan_markdowns/cloudcamp-hackathon.md)
-- Project summary: [plan_markdowns/project-summary.md](plan_markdowns/project-summary.md)
+## Contributing
 
-Contributing & support
----
+Open an issue or submit a PR to the `main` branch. Keep changes focused and testable.
 
-If you want to contribute:
-
-- Open an issue describing the change or feature
-- Create a focused PR against the `main` branch; keep changes small and testable
-
-For questions and help, open an issue in the repository.
-
-Maintainers
----
-
-- Repository owner: `smabdullah2002` (GitHub)
-
-License
----
-
-This repository does not include a license file. Add `LICENSE` to the repo to make usage terms explicit.
-
-Acknowledgements
----
-
-This project was built as part of a hackathon demo and integrates open-source libraries such as scikit-learn, FastAPI, and optional cloud services (Hugging Face, Pinecone).
+**Maintainer:** `smabdullah2002` (GitHub)
 
 ---
 
-If you'd like, I can also:
-- add a minimal `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`
-- add CI badges and a sample GitHub Actions workflow
-- generate OpenAPI client snippets for frontend teams
+Built as a hackathon demo. Integrates scikit-learn, FastAPI, LangChain, Pinecone, and Hugging Face.
 
 
 
