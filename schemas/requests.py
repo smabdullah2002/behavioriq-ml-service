@@ -152,3 +152,17 @@ class BIQSearchResponse(BaseModel):
     pipeline_ms: float
 
 
+# ── RAG Chat ──────────────────────────────────────────────────────────────────
+
+class ChatRequest(BaseModel):
+    """Request for the AI Commerce Assistant chat endpoint."""
+    question: str
+    conversation_history: Optional[List[Dict[str, str]]] = None
+
+
+class ChatResponse(BaseModel):
+    """Response from the AI Commerce Assistant."""
+    answer: str
+    sources: Optional[List[Dict[str, str]]] = None
+    pipeline_ms: Optional[float] = None
+
