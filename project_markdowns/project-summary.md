@@ -43,7 +43,31 @@ There is also a newer BehaviorIQ reranker in `models/reranker_updated.py` that a
 
 The newer code also supports a Pinecone hybrid style setup and a cloud-embedding fallback path when keys are missing.
 
-### 4. Observability and service plumbing
+### 4. LangChain-powered RAG Commerce Assistant
+
+The project integrates a full **LangChain + RAG** pipeline for a commerce Q&A assistant:
+
+**RAG layer** (`rag/`):
+- `vector_store.py` — `PineconeVectorStore` wrapping Pinecone hybrid search (dense + sparse vectors) with **5 namespaces**: `products`, `orders`, `churn_predictions`, `pricing_decisions`, `search_logs`
+- Queries every namespace in parallel so each data source contributes context
+- `document_builder.py` — `DocumentBuilder` converts raw data from each source type into formatted RAG documents
+- `prompts.py` — Prompt templates tuned for commerce analyst use cases
+- `demo_data.py` — Generators for demo data across all namespaces (orders, churn, pricing decisions, search logs)
+- Supports both **online** (real Pinecone index) and **offline** (in-memory fallback) modes
+
+**LangChain chain** (`chains/commerce_assistant.py`):
+- `CommerceAssistant` class built with LangChain Expression Language (LCEL): `prompt | llm | StrOutputParser()`
+- Supports **3 LLM providers**: Claude (Anthropic), GPT-4 (OpenAI), Gemini 2.5 Flash (Google)
+- Configurable via `LLM_PROVIDER` env var (defaults to Gemini)
+
+**API endpoints exposed**:
+- `POST /ml/chat` — ask business questions over the ingested data
+- `POST /ml/ingest` — ingest data into a specific namespace
+- `POST /ml/ingest/demo` — seed all namespaces with demo data
+
+The RAG pipeline reuses the BehaviorIQ pipeline's `CloudEmbedder`, `SparseEncoder`, and `PineconeManager` for vector generation and storage, so the infrastructure is shared between the search reranker and the chat assistant.
+
+### 5. Observability and service plumbing
 
 The service has logging, metrics, startup loading, artifact checks, and health reporting. The app also exposes endpoints for the ML service to be monitored and debugged more easily.
 
@@ -56,6 +80,9 @@ The service has logging, metrics, startup loading, artifact checks, and health r
 - The code returns breakdown fields in several places, which helps explain predictions.
 - The project includes monitoring, logging, and test artifacts, which makes it easier to debug.
 - The newer reranker design is flexible and can support future search intent logic.
+- **LangChain + RAG pipeline is fully integrated** — the Commerce Assistant supports multi-namespace retrieval, multiple LLM providers, and works in both online and offline mode.
+- **Shared infrastructure** — the RAG pipeline reuses the same embedder, sparse encoder, and Pinecone manager as the search reranker, reducing duplication.
+- **Ingestion API** — live data ingestion into namespaces is supported at runtime, not just at startup.
 
 ## Weaknesses
 
@@ -66,10 +93,12 @@ The service has logging, metrics, startup loading, artifact checks, and health r
 - The current reranker logic still needs tuning, especially weights and price rules.
 - There are multiple files with overlapping responsibilities, which can make maintenance confusing.
 - The project still has hackathon-style structure in a few places, so the architecture is improving but not fully polished.
+- **RAG context assembly** pulls flat metadata per namespace but does not yet incorporate live model outputs (churn predictions, pricing decisions) dynamically.
+- **LLM provider choice** is environment-driven with no per-request override, limiting flexibility for A/B testing.
 
 ## Current status in one sentence
 
-This is now a working BehaviorIQ ML service with real churn training, deterministic intent scoring, user vectors, and an evolving behavior-aware reranker, but it still needs cleanup, tuning, and doc alignment.
+This is now a working BehaviorIQ ML service with real churn training, deterministic intent scoring, user vectors, an evolving behavior-aware reranker, and a LangChain-powered RAG commerce assistant with multi-namespace hybrid search.
 
 ## Best next improvements
 
@@ -78,3 +107,5 @@ This is now a working BehaviorIQ ML service with real churn training, determinis
 - align the markdown docs with the current code
 - remove or isolate older legacy reranker paths if they are no longer needed
 - add stronger offline evaluation for reranking quality
+- expose per-request LLM provider override in the chat endpoint for A/B testing
+- add automatic context enrichment from live model outputs before RAG retrieval

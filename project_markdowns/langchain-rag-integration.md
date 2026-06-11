@@ -156,3 +156,219 @@ Gemini answers **only based on what's in the context**. This is why it doesn't h
 > **Convert question → find relevant data → give data + question to LLM → LLM answers using only that data.**
 
 LangChain's only job is **Step 4** — wiring the prompt template, the LLM, and the output parser together so you don't have to write that plumbing code yourself.
+
+---
+
+## API Schemas for Backend Integration
+
+These are the exact schemas your backend needs to send/receive.
+
+### `POST /ml/chat` — Ask the AI Commerce Assistant
+
+**Request** (`ChatRequest`):
+```json
+{
+  "question": "high value orders",
+  "conversation_history": null
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `question` | `string` | The question to ask (required) |
+| `conversation_history` | `list[dict]` or `null` | Optional past messages `[{"role": "user", "content": "..."}]` |
+
+**Response** (`ChatResponse`):
+```json
+{
+  "answer": "The highest value orders are ORD-1019 ($466.7) from cust_4...",
+  "sources": [
+    { "name": "Order ORD-1019", "category": "Order" },
+    { "name": "Order ORD-1010", "category": "Order" },
+    { "name": "Churn Risk - cust_7", "category": "Churn Risk" }
+  ],
+  "pipeline_ms": 6631
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `answer` | `string` | The AI-generated answer |
+| `sources` | `list[dict]` or `null` | Source documents used — each has `name` and `category` |
+| `pipeline_ms` | `float` or `null` | Total end-to-end time in milliseconds |
+
+---
+
+### `POST /ml/ingest` — Push Data into RAG Namespaces
+
+**Request** (`IngestRequest`):
+```json
+{
+  "namespace": "orders",
+  "data": [ ... ]
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `namespace` | `string` | One of: `products`, `orders`, `churn_predictions`, `pricing_decisions`, `search_logs` |
+| `data` | `list[object]` | Array of records (see per-namespace formats below) |
+
+**Response** (`IngestResponse`):
+```json
+{
+  "success": true,
+  "namespace": "orders",
+  "documents_ingested": 10,
+  "message": "Successfully ingested 10 documents"
+}
+```
+
+---
+
+### `POST /ml/ingest/demo` — Seed Demo Data
+
+**Response**:
+```json
+{
+  "message": "Demo data ingestion completed",
+  "results": {
+    "products": { "success": true, "documents_ingested": 20, "message": "..." },
+    "orders": { "success": true, "documents_ingested": 15, "message": "..." },
+    ...
+  }
+}
+```
+
+---
+
+### Data Formats Per Namespace
+
+#### `products`
+```json
+{
+  "id": "p1",
+  "name": "Wireless Mouse",
+  "desc": "Ergonomic wireless mouse with 2.4GHz",
+  "category": "Electronics",
+  "brand": "TechBrand",
+  "price": 29.99,
+  "rating": 4.5,
+  "popularity": 0.85
+}
+```
+
+#### `orders`
+```json
+{
+  "id": "ord_1",
+  "order_id": "ORD-1019",
+  "customer_id": "cust_4",
+  "total": 466.70,
+  "items_count": 3,
+  "date": "2026-05-22",
+  "status": "completed"
+}
+```
+
+#### `churn_predictions`
+```json
+{
+  "id": "churn_1",
+  "customer_id": "cust_7",
+  "churn_probability": 0.665,
+  "days_since_purchase": 103,
+  "rfm_score": 2.3,
+  "predicted_action": "re-engagement"
+}
+```
+
+#### `pricing_decisions`
+```json
+{
+  "id": "pd_1",
+  "product_id": "p1",
+  "product_name": "Wireless Mouse",
+  "discount_percent": 32.2,
+  "decision_type": "loyalty_reward",
+  "effective_date": "2026-06-01",
+  "reason": "Customer loyalty program"
+}
+```
+
+#### `search_logs`
+```json
+{
+  "id": "log_1",
+  "search_query": "athletic wear",
+  "results_count": 35,
+  "conversions": 4,
+  "conversion_rate": 0.114,
+  "avg_position": 2.3,
+  "date": "2026-05-20"
+}
+```
+
+---
+
+### Internal Document Format (What Gets Stored in Pinecone)
+
+Each namespace record is converted into this internal structure before upsert:
+```json
+{
+  "id": "orders#ORD-1019",
+  "text": "Order ORD-1019 from customer cust_4 total 466.7 items 3",
+  "metadata": {
+    "source": "orders",
+    "name": "Order ORD-1019",
+    "category": "Order",
+    "order_id": "ORD-1019",
+    "customer_id": "cust_4",
+    "total": 466.70,
+    "items_count": 3,
+    "date": "2026-05-22",
+    "status": "completed"
+  }
+}
+```
+
+The `text` field is what gets embedded and searched. The `metadata` is returned as context when a match is found. The `id` is prefixed with `{namespace}#` to guarantee uniqueness across namespaces.
+
+---
+
+### Prompt Template (What LangChain Uses)
+
+```text
+You are an AI commerce analyst for BehaviorIQ, helping SME owners understand their business data.
+
+You have access to data from multiple sources:
+- [Order] - customer orders and revenue
+- [Churn Risk] - customers at risk of leaving
+- [Pricing] - active discounts and pricing decisions
+- [Search] - what customers are searching for and which searches convert
+
+Answer the question using the provided context. Be specific and reference the actual data.
+If the context doesn't contain relevant information for the question, say so clearly.
+
+Context:
+{context}
+
+Question: {question}
+
+Answer:
+```
+
+LangChain fills in `{context}` and `{question}` dynamically, then sends the assembled prompt to the LLM.
+
+---
+
+### Full Service Integration Checklist
+
+| Step | What Your Backend Does |
+|---|---|
+| **1. Ingest data** | `POST /ml/ingest` for each namespace with your business data |
+| **2. (Optional) Seed demo** | `POST /ml/ingest/demo` for test data |
+| **3. Ask questions** | `POST /ml/chat` with user questions |
+| **4. Parse response** | Read `answer` (text), `sources` (citations), `pipeline_ms` (latency) |
+
+The service handles embedding, search, prompt-building, and LLM generation — you just send data and questions.
